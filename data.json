@@ -1,0 +1,46 @@
+{
+    "profile_0": {
+        "user_name": "Moses",
+        "avatar": "The Flash",
+        "universe": "DC",
+        "team": [
+            "Wonder Woman",
+            "Green Lantern",
+            "Aquaman",
+            "Martian Manhunter"
+        ]
+    },
+    "profile_1": {
+        "user_name": "James Bond",
+        "avatar": "Quicksilver",
+        "universe": "Marvel",
+        "team": [
+            "Thor",
+            "Hulk",
+            "Black Widow",
+            "Hawkeye"
+        ]
+    },
+    "profile_2": {
+        "user_name": "Mosey Jomein",
+        "avatar": "The Flash",
+        "universe": "DC",
+        "team": [
+            "Superman",
+            "Batman",
+            "Wonder Woman",
+            "Green Lantern"
+        ]
+    },
+    "profile_3": {
+        "user_name": "Mosss",
+        "avatar": "Iron Man",
+        "universe": "Marvel",
+        "team": [
+            "Thor",
+            "Hulk",
+            "Black Widow",
+            "Hawkeye"
+        ]
+    }
+}
