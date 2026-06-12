@@ -1,86 +1,30 @@
 {
-    "102": {
+    "189": {
         "response": "success",
-        "id": "102",
-        "name": "Black Knight III",
+        "id": "189",
+        "name": "Crimson Crusader",
         "powerstats": {
-            "intelligence": "63",
-            "strength": "10",
-            "speed": "8",
-            "durability": "70",
-            "power": "43",
-            "combat": "70"
+            "intelligence": "null",
+            "strength": "58",
+            "speed": "null",
+            "durability": "null",
+            "power": "null",
+            "combat": "null"
         },
         "biography": {
-            "full-name": "Dane Whitman",
+            "full-name": "Rory Destine",
             "alter-egos": "No alter egos found.",
             "aliases": [
-                "The Pendragon",
-                "Gann Josin",
-                "Eobar Garrington"
+                "-"
             ],
-            "place-of-birth": "Gloucester, Massachusetts",
-            "first-appearance": "Avengers #47 (1967)",
+            "place-of-birth": "Ravenscroft, England",
+            "first-appearance": "ClanDestine #1 (1994)",
             "publisher": "Marvel Comics",
             "alignment": "good"
         },
         "appearance": {
             "gender": "Male",
-            "race": "Human",
-            "height": [
-                "6'0",
-                "183 cm"
-            ],
-            "weight": [
-                "190 lb",
-                "86 kg"
-            ],
-            "eye-color": "Brown",
-            "hair-color": "Brown"
-        },
-        "work": {
-            "occupation": "Adventurer, scientist; former crusader",
-            "base": "-"
-        },
-        "connections": {
-            "group-affiliation": "MI-13; formerly Avengers, Masters of Evil (as a mole), Excalibur, Heroes for Hire, Ultraforce (in the Ultraverse), Defenders, Knights of Wundagore, Queen's Vengeance, King Richard's Army",
-            "relatives": "Nathan Garrett (Black Knight II, uncle, deceased); Sir Percy of Scandia (Black Knight), Sir Raston, Eobar Garrington (Black Knights of past eras, ancestors, deceased); Lady Rosamund, Edward, Geoffrey (ancestral relations, presumed deceased); Dafydd ap Iowerth, Arthur Pendragon, Mordred the Evil, Morgan Le Fay (distant ancestral relations)"
-        },
-        "image": {
-            "url": "https://www.superherodb.com/pictures2/portraits/10/100/246.jpg"
-        }
-    },
-    "100": {
-        "response": "success",
-        "id": "100",
-        "name": "Black Flash",
-        "powerstats": {
-            "intelligence": "44",
-            "strength": "10",
-            "speed": "100",
-            "durability": "80",
-            "power": "100",
-            "combat": "30"
-        },
-        "biography": {
-            "full-name": "",
-            "alter-egos": "No alter egos found.",
-            "aliases": [
-                "Barry Allen",
-                "Flashback",
-                "Slow Lightning",
-                "Black Racer",
-                "Death Flash",
-                "God of Death"
-            ],
-            "place-of-birth": "-",
-            "first-appearance": "Flash Vol 2 #138",
-            "publisher": "DC Comics",
-            "alignment": "neutral"
-        },
-        "appearance": {
-            "gender": "Male",
-            "race": "God / Eternal",
+            "race": "null",
             "height": [
                 "-",
                 "0 cm"
@@ -89,67 +33,19 @@
                 "- lb",
                 "0 kg"
             ],
-            "eye-color": "-",
-            "hair-color": "-"
+            "eye-color": "Blue",
+            "hair-color": "Strawberry Blond"
         },
         "work": {
             "occupation": "-",
             "base": "-"
         },
         "connections": {
-            "group-affiliation": "-",
-            "relatives": "-"
+            "group-affiliation": "ClanDestine",
+            "relatives": "Adam Destine (father), unnamed genie (mother), Albert Destine (brother), Samantha Destine (Argent, sister), William Destine (Cap'n Oz, brother), Kay Cera (Cuckoo, sister), Florence Destine (sister, deceased), Gracie Destine (sister, deceased), Dominic Destine (Hex, brother), Pandora Destine (Imp, sister), Maurice Destine (brother, deceased), Newton Destine (brother), Vincent Destine (brother, deceased), Walter Destine (Wallop, brother)"
         },
         "image": {
-            "url": "https://www.superherodb.com/pictures2/portraits/10/100/10831.jpg"
-        }
-    },
-    "642": {
-        "id": "642",
-        "name": "Superboy-Prime",
-        "powerstats": {
-            "intelligence": "94",
-            "strength": "100",
-            "speed": "100",
-            "durability": "100",
-            "power": "100",
-            "combat": "85"
-        },
-        "biography": {
-            "full-name": "Kal-El",
-            "alter-egos": "No alter egos found.",
-            "aliases": [
-                "Superman-Prime; Prime; Superboy; Clark Kent; Clarkie; Time Trapper"
-            ],
-            "place-of-birth": "Krypton (Earth-Prime)",
-            "first-appearance": "DC Comics Presents #87 (November, 1985)",
-            "publisher": "DC Comics",
-            "alignment": "bad"
-        },
-        "appearance": {
-            "gender": "Male",
-            "race": "Kryptonian",
-            "height": [
-                "5'11",
-                "180 cm"
-            ],
-            "weight": [
-                "170 lb",
-                "77 kg"
-            ],
-            "eye-color": "Blue",
-            "hair-color": "Black / Blue"
-        },
-        "work": {
-            "occupation": "-",
-            "base": "currently a recreation of Earth-Prime, formerly Qward, Anti-Matter Universe."
-        },
-        "connections": {
-            "group-affiliation": "Formerly Black Lantern Corps, Legion of Super-Villains, Sinestro Corps",
-            "relatives": "Jor-El (father; deceased); Lara (mother, deceased); Jerry Kent (adoptive father); Naomi Kent (adoptive mother)"
-        },
-        "image": {
-            "url": "https://www.superherodb.com/pictures2/portraits/10/100/1535.jpg"
+            "url": "https://www.superherodb.com/pictures2/portraits/10/100/303.jpg"
         }
     }
 }
