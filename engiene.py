@@ -33,4 +33,37 @@ def lobby(name):
         
         
     else:
-        pass
+        exit()
+
+def play():
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+def test():
+    if universe == "Marvel":
+        avatar = questionary.select(f"\nPick Your Avatar {user_name} :", choices = characters.avengers).ask()
+        team_members = characters.avengers.copy()
+        team_members.remove(avatar)
+        team = questionary.checkbox("Pick Your 4 Team Mates",choices= team_members).ask()
+        while len(team) > 4:
+            team = questionary.checkbox("Please Select only 4 Members",choices= team_members).ask()
+
+                
+
+    else:
+        avatar = questionary.select(f"\nPick Your Avatar {user_name} :", choices = characters.justice_league).ask()
+        team_members = characters.justice_league.copy()
+        team_members.remove(avatar)
+        team = questionary.checkbox("Pick Your 4 Team Mates",choices= team_members).ask()
+        while len(team) > 4:
+            team = questionary.checkbox("Please Select only 4 Members",choices= team_members).ask()

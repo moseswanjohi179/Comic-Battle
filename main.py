@@ -4,8 +4,15 @@ import pyfiglet
 import questionary
 import characters
 import time
+import getpass
 from engiene import lobby
 from alive_progress import alive_bar
+import bcrypt
+
+
+
+
+
 print("""
 
 """)
@@ -39,7 +46,7 @@ def storage_function():
         n = n + 1
     else:
         x = f"profile_{n}"
-        data[x] = {"user_name":user_name,"avatar":avatar,"universe":universe,"team":team}
+        data[x] = {"user_name":user_name,"password":hashed}
         with open("data.json","w") as file:
             json.dump(data, file, indent=4)
 
@@ -48,34 +55,14 @@ def storage_function():
 
 def regstration():
     global user_name
-    global avatar
-    global universe
-    global team
+    global hashed
+    
 
     user_name = questionary.text("\nWhat is Your Name ?").ask()
-
-    universe = questionary.select("\nPick your Universe:", choices=["DC","Marvel"]).ask()
-
-
-
-    if universe == "Marvel":
-        avatar = questionary.select(f"\nPick Your Avatar {user_name} :", choices = characters.avengers).ask()
-        team_members = characters.avengers.copy()
-        team_members.remove(avatar)
-        team = questionary.checkbox("Pick Your 4 Team Mates",choices= team_members).ask()
-        while len(team) > 4:
-            team = questionary.checkbox("Please Select only 4 Members",choices= team_members).ask()
-
-                
-
-    else:
-        avatar = questionary.select(f"\nPick Your Avatar {user_name} :", choices = characters.justice_league).ask()
-        team_members = characters.justice_league.copy()
-        team_members.remove(avatar)
-        team = questionary.checkbox("Pick Your 4 Team Mates",choices= team_members).ask()
-        while len(team) > 4:
-            team = questionary.checkbox("Please Select only 4 Members",choices= team_members).ask()
-
+    security = questionary.password("\nSecure your account with a password: ").ask()
+    bytes_pw = security.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(bytes_pw, salt).decode('utf-8')
     storage_function()
 
 
@@ -100,10 +87,22 @@ def introduction():
                 
 
             identity = questionary.select("\nPick Your Profile: ", choices = profiles).ask()
-            action = lobby(identity)
-            if action == "Reset":
-                character_del(identity)
-                regstration()
+            pass_confirm = getpass.getpass("Enter Your Password: ")
+            bytes_entered = pass_confirm.encode('utf-8')
+            
+
+            for x in data.values():
+                if x["user_name"] == identity:
+                    possibility = x["password"]
+
+            if bcrypt.checkpw(bytes_entered, possibility.encode('utf-8')):
+                action = lobby(identity)
+                if action == "Reset":
+                    character_del(identity)
+                    regstration()
+            else:
+                print("\n!!!Wrong Password!!!!!\n")
+                introduction()
         except(json.JSONDecodeError, FileNotFoundError):
             print("No user data found please Register.")
             regstration()
