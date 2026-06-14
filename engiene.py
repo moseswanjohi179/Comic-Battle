@@ -25,14 +25,28 @@ def character_del(identity):
 def lobby(name):
     selection = questionary.select("\n---Options---\n", choices=["Play","Reset","Exit"]).ask()
     if selection == "Play":
-        pass
+        return "play"
     elif selection == "Reset":
         return "Reset" 
     else:
         return "exit"
 
 def play():
-    pass
+    with open("characters.json","r") as file:
+        data = json.load(file)
+    character_register = []
+    universe_list = []
+    for x in data:
+        character_register.append(data[x]["biography"]["publisher"])
+
+    character_register = set(character_register)
+    universe = questionary.select("\nSelect Your Universe:\n", choices=list(character_register)).ask()
+    for x in data:
+        if data[x]["biography"]["publisher"] == universe:
+            universe_list.append(data[x]["name"])
+    avatar = questionary.select("Select Your Avatar", choices=universe_list ).ask()
+    universe_list.remove(avatar)
+    team = questionary.checkbox("Pick A Maximum of Five Team Mates:", choices=universe_list).ask()
 
 
 
@@ -45,21 +59,3 @@ def play():
 
 
 
-def test():
-    if universe == "Marvel":
-        avatar = questionary.select(f"\nPick Your Avatar {user_name} :", choices = characters.avengers).ask()
-        team_members = characters.avengers.copy()
-        team_members.remove(avatar)
-        team = questionary.checkbox("Pick Your 4 Team Mates",choices= team_members).ask()
-        while len(team) > 4:
-            team = questionary.checkbox("Please Select only 4 Members",choices= team_members).ask()
-
-                
-
-    else:
-        avatar = questionary.select(f"\nPick Your Avatar {user_name} :", choices = characters.justice_league).ask()
-        team_members = characters.justice_league.copy()
-        team_members.remove(avatar)
-        team = questionary.checkbox("Pick Your 4 Team Mates",choices= team_members).ask()
-        while len(team) > 4:
-            team = questionary.checkbox("Please Select only 4 Members",choices= team_members).ask()

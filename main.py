@@ -67,7 +67,7 @@ def regstration():
 
 
 def introduction():
-    from engiene import character_del
+    from engiene import character_del, play
     answer = questionary.confirm("Are you new here?").ask()
     if answer == True:
         regstration()
@@ -77,6 +77,8 @@ def introduction():
             regstration()
         elif action == "exit":
             introduction()
+        elif action == "play":
+            play()
     else: 
         try:
             with open("data.json","r") as file:
@@ -103,7 +105,8 @@ def introduction():
                     regstration()
                 elif action == "exit":
                     introduction()
-
+                elif action == "play":
+                    play()
             else:
                 print("\n!!!Wrong Password!!!!!\n")
                 introduction()

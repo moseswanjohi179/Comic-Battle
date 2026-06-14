@@ -127,7 +127,7 @@ def mode():
                               if x.get("name") == choose:
                                 info = x
                                 try:
-                                    with open("charcters.json","r") as file:
+                                    with open("characters.json","r") as file:
                                         data = json.load(file)
 
                                 except(json.JSONDecodeError, FileNotFoundError):
@@ -204,7 +204,7 @@ def mode():
                 else:
                     info = hero_archive
                     try:
-                        with open("charcters.json","r") as file:
+                        with open("characters.json","r") as file:
                             data = json.load(file)
 
                     except(json.JSONDecodeError, FileNotFoundError):
