@@ -2,7 +2,6 @@ import os
 import json
 import pyfiglet
 import questionary
-import characters
 import time
 import getpass
 from engiene import lobby
