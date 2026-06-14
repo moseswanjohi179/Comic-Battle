@@ -18,7 +18,7 @@ print("""
 
 with alive_bar(100, title="Loading Game: ") as bar:
     for i in range(100):
-        time.sleep(0.1)
+        time.sleep(0.03)
         bar()
 
 print("""
@@ -75,6 +75,8 @@ def introduction():
         if action == "Reset":
             character_del(user_name)
             regstration()
+        elif action == "exit":
+            introduction()
     else: 
         try:
             with open("data.json","r") as file:
@@ -99,6 +101,9 @@ def introduction():
                 if action == "Reset":
                     character_del(identity)
                     regstration()
+                elif action == "exit":
+                    introduction()
+
             else:
                 print("\n!!!Wrong Password!!!!!\n")
                 introduction()

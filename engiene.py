@@ -2,7 +2,6 @@ import os
 import json
 import pyfiglet
 import questionary
-import characters
 import time
 from alive_progress import alive_bar
 
@@ -28,12 +27,9 @@ def lobby(name):
     if selection == "Play":
         pass
     elif selection == "Reset":
-        return "Reset"
-        
-        
-        
+        return "Reset" 
     else:
-        exit()
+        return "exit"
 
 def play():
     pass
