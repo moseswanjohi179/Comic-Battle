@@ -2,8 +2,9 @@ import os
 import json
 import pyfiglet
 import questionary
+import g4f
 import time
-from alive_progress import alive_bar
+
 
 def character_del(identity):
     
@@ -40,14 +41,28 @@ def play():
         character_register.append(data[x]["biography"]["publisher"])
 
     character_register = set(character_register)
+    while character_register == False:
+        print("!!The List is Empty!!")
+        decision = questionary.confirm("Would You Like To Quit?").ask()
+        if decision == True:
+            exit()
     universe = questionary.select("\nSelect Your Universe:\n", choices=list(character_register)).ask()
     for x in data:
         if data[x]["biography"]["publisher"] == universe:
             universe_list.append(data[x]["name"])
     avatar = questionary.select("Select Your Avatar", choices=universe_list ).ask()
     universe_list.remove(avatar)
-    team = questionary.checkbox("Pick A Maximum of Five Team Mates:", choices=universe_list).ask()
-
+    if universe_list == True:
+        while universe_list == False:
+            print("!!The List is Empty!!")
+            decision = questionary.confirm("\nWould You Like To Quit?\n").ask()
+            if decision == True:
+                exit()
+        team = questionary.checkbox("Pick A Maximum of Five Team Mates:", choices=universe_list).ask()
+    else:
+        choice = questionary.confirm("\nThere Are No other Characters In this Universe.Enlist characters?\n").ask()
+        if choice == True:
+            return "character_enlist"
 
 
 

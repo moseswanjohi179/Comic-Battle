@@ -79,6 +79,7 @@ def introduction():
             introduction()
         elif action == "play":
             play()
+            lobby(user_name)
     else: 
         try:
             with open("data.json","r") as file:
@@ -106,7 +107,11 @@ def introduction():
                 elif action == "exit":
                     introduction()
                 elif action == "play":
-                    play()
+                    enlist = play()
+                    if enlist == "character_enlist":
+                        from characters_main import mode
+                        mode()
+                    
             else:
                 print("\n!!!Wrong Password!!!!!\n")
                 introduction()

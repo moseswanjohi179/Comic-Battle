@@ -1,4 +1,5 @@
 import json
+from character_manager import update_characters
 import urllib.request
 import questionary
 import os
@@ -37,6 +38,7 @@ def initialize_api_key():
 
 
 def mode():
+        update_characters() 
     
         access_token = initialize_api_key()
         access_token = access_token.strip()
@@ -58,6 +60,7 @@ def mode():
                 raw_response = response.read()
                 decoded_response = raw_response.decode("utf-8") 
                 hero_archive = json.loads(decoded_response)
+                
 
 
             except urllib.error.URLError as e:
@@ -230,9 +233,9 @@ def mode():
                 exit()
 
 
-
-mode()
-       
+if __name__ == "__main__":
+    mode()
+     
 
 
 
