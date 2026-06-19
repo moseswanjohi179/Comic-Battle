@@ -4,6 +4,7 @@ import urllib.request
 import questionary
 import os
 import webbrowser
+import pyfiglet
 import getpass
 import time
 from dotenv import load_dotenv, set_key
@@ -39,7 +40,7 @@ def initialize_api_key():
 
 def mode():
         update_characters() 
-    
+        os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
         access_token = initialize_api_key()
         access_token = access_token.strip()
         choice = questionary.select("Mode", choices=["Search by ID","Search by Name"]).ask()

@@ -24,6 +24,7 @@ def character_del(identity):
 
 
 def lobby(name):
+    os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
     selection = questionary.select("\n---Options---\n", choices=["Play","Reset","Exit"]).ask()
     if selection == "Play":
         return "play"
@@ -33,6 +34,7 @@ def lobby(name):
         return "exit"
 
 def play():
+    os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
     with open("characters.json","r") as file:
         data = json.load(file)
     character_register = []
@@ -54,7 +56,7 @@ def play():
     universe_list.remove(avatar)
     if universe_list == True:
         while universe_list == False:
-            print("!!The List is Empty!!")
+            print("!!The Universe List is Empty!!")
             decision = questionary.confirm("\nWould You Like To Quit?\n").ask()
             if decision == True:
                 exit()
@@ -63,7 +65,7 @@ def play():
         choice = questionary.confirm("\nThere Are No other Characters In this Universe.Enlist characters?\n").ask()
         if choice == True:
             return "character_enlist"
-
+        
 
 
 

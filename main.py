@@ -21,12 +21,6 @@ with alive_bar(100, title="Loading Game: ") as bar:
         time.sleep(0.03)
         bar()
 
-print("""
-
-""")
-
-title = pyfiglet.figlet_format("Battle_Game", font= "graffiti")
-print(title)
 
 
 def storage_function():
@@ -53,6 +47,7 @@ def storage_function():
 
 
 def regstration():
+    os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
     global user_name
     global hashed
     
@@ -67,6 +62,7 @@ def regstration():
 
 
 def introduction():
+    os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
     from engiene import character_del, play
     answer = questionary.confirm("Are you new here?").ask()
     if answer == True:
@@ -100,18 +96,21 @@ def introduction():
                     possibility = x["password"]
 
             if bcrypt.checkpw(bytes_entered, possibility.encode('utf-8')):
-                action = lobby(identity)
-                if action == "Reset":
-                    character_del(identity)
-                    regstration()
-                elif action == "exit":
-                    introduction()
-                elif action == "play":
-                    enlist = play()
-                    if enlist == "character_enlist":
-                        from characters_main import mode
-                        mode()
-                    
+                def lobby_handle():
+                    action = lobby(identity)
+                    if action == "Reset":
+                        character_del(identity)
+                        regstration()
+                    elif action == "exit":
+                        introduction()
+                    elif action == "play":
+                        enlist = play()
+                        if enlist == "character_enlist":
+                            from characters_main import mode
+                            mode()
+                        else:
+                            lobby_handle()
+                lobby_handle()
             else:
                 print("\n!!!Wrong Password!!!!!\n")
                 introduction()
