@@ -25,13 +25,15 @@ def character_del(identity):
 
 def lobby(name):
     os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
-    selection = questionary.select("\n---Options---\n", choices=["Play","Reset","Exit"]).ask()
+    selection = questionary.select("\n---Options---\n", choices=["Play","Reset","Character Enlist","Exit"]).ask()
     if selection == "Play":
         return "play"
     elif selection == "Reset":
         return "Reset" 
+    elif selection == "Character Enlist":
+        return "Enlist"
     else:
-        return "exit"
+        return "log out"
 
 def play():
     os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
@@ -54,14 +56,16 @@ def play():
             universe_list.append(data[x]["name"])
     avatar = questionary.select("Select Your Avatar", choices=universe_list ).ask()
     universe_list.remove(avatar)
-    if universe_list == True:
-        while universe_list == False:
-            print("!!The Universe List is Empty!!")
-            decision = questionary.confirm("\nWould You Like To Quit?\n").ask()
-            if decision == True:
-                exit()
+    
+    while universe_list == False:
+        print("!!The Universe List is Empty!!")
+        decision = questionary.confirm("\nWould You Like To Quit?\n").ask()
+        if decision == True:
+            exit()
+
+    try:
         team = questionary.checkbox("Pick A Maximum of Five Team Mates:", choices=universe_list).ask()
-    else:
+    except:   
         choice = questionary.confirm("\nThere Are No other Characters In this Universe.Enlist characters?\n").ask()
         if choice == True:
             return "character_enlist"

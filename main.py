@@ -71,8 +71,11 @@ def introduction():
         if action == "Reset":
             character_del(user_name)
             regstration()
-        elif action == "exit":
+        elif action == "log out":
             introduction()
+        elif action == "Enlist":
+            from characters_main import mode
+            mode()
         elif action == "play":
             play()
             lobby(user_name)
@@ -101,18 +104,35 @@ def introduction():
                     if action == "Reset":
                         character_del(identity)
                         regstration()
+
                     elif action == "exit":
                         introduction()
+
+                    elif action == "Enlist":
+                        from characters_main import mode
+                        mode()
+
                     elif action == "play":
                         enlist = play()
                         if enlist == "character_enlist":
                             from characters_main import mode
                             mode()
+                            try:
+                                lobby_handle()
+                            except:
+                                print("!!Error..Please Restart!!")
+                                exit()
+                            
                         else:
-                            lobby_handle()
+                            try:
+                                lobby_handle()
+                            except:
+                                print("!!Error..Please Restart!!")
+                                exit()
                 lobby_handle()
             else:
                 print("\n!!!Wrong Password!!!!!\n")
+                time.sleep(2)
                 introduction()
         except(json.JSONDecodeError, FileNotFoundError):
             print("No user data found please Register.")

@@ -4,10 +4,10 @@
         "name": "Superman",
         "powerstats": {
             "intelligence": "94",
-            "strength": "99",
+            "strength": "95",
             "speed": "100",
-            "durability": "99",
-            "power": "99",
+            "durability": "95",
+            "power": "95",
             "combat": "85"
         },
         "biography": {
@@ -155,10 +155,10 @@
         "name": "Batman (Terry McGinnis)",
         "powerstats": {
             "intelligence": "81",
-            "strength": "25",
+            "strength": "15",
             "speed": "29",
-            "durability": "25",
-            "power": "25",
+            "durability": "15",
+            "power": "15",
             "combat": "90"
         },
         "biography": {
@@ -207,10 +207,10 @@
         "name": "Batman (Bruce Wayne)",
         "powerstats": {
             "intelligence": "100",
-            "strength": "15",
+            "strength": "25",
             "speed": "27",
-            "durability": "15",
-            "power": "15",
+            "durability": "25",
+            "power": "25",
             "combat": "100"
         },
         "biography": {
@@ -249,6 +249,109 @@
         },
         "image": {
             "url": "https://www.superherodb.com/pictures2/portraits/10/100/639.jpg"
+        }
+    },
+    "500": {
+        "response": "success",
+        "id": "500",
+        "name": "Omega Red",
+        "powerstats": {
+            "intelligence": "null",
+            "strength": "25",
+            "speed": "null",
+            "durability": "25",
+            "power": "25",
+            "combat": "null"
+        },
+        "biography": {
+            "full-name": "Arkady Gregorivich",
+            "alter-egos": "No alter egos found.",
+            "aliases": [
+                "Arkady Rossovich",
+                "Vasyliev Arkady"
+            ],
+            "place-of-birth": "-",
+            "first-appearance": "-",
+            "publisher": "Marvel Comics",
+            "alignment": "bad"
+        },
+        "appearance": {
+            "gender": "Male",
+            "race": "null",
+            "height": [
+                "6'11",
+                "211 cm"
+            ],
+            "weight": [
+                "425 lb",
+                "191 kg"
+            ],
+            "eye-color": "Red",
+            "hair-color": "Blond"
+        },
+        "work": {
+            "occupation": "Crimelord; former mercenary, KGB agent",
+            "base": "-"
+        },
+        "connections": {
+            "group-affiliation": "Red Mafia (kingpin); former employee of Sabretooth, The General, Ivan Pushkin, and Matsu'o Tsurayaba; formerly KGB",
+            "relatives": "-"
+        },
+        "image": {
+            "url": "https://www.superherodb.com/pictures2/portraits/10/100/208.jpg"
+        }
+    },
+    "100": {
+        "id": "100",
+        "name": "Black Flash",
+        "powerstats": {
+            "intelligence": "44",
+            "strength": "40",
+            "speed": "100",
+            "durability": "40",
+            "power": "40",
+            "combat": "30"
+        },
+        "biography": {
+            "full-name": "",
+            "alter-egos": "No alter egos found.",
+            "aliases": [
+                "Barry Allen",
+                "Flashback",
+                "Slow Lightning",
+                "Black Racer",
+                "Death Flash",
+                "God of Death"
+            ],
+            "place-of-birth": "-",
+            "first-appearance": "Flash Vol 2 #138",
+            "publisher": "DC Comics",
+            "alignment": "neutral"
+        },
+        "appearance": {
+            "gender": "Male",
+            "race": "God / Eternal",
+            "height": [
+                "-",
+                "0 cm"
+            ],
+            "weight": [
+                "- lb",
+                "0 kg"
+            ],
+            "eye-color": "-",
+            "hair-color": "-"
+        },
+        "work": {
+            "occupation": "-",
+            "base": "-"
+        },
+        "connections": {
+            "group-affiliation": "-",
+            "relatives": "-"
+        },
+        "image": {
+            "url": "https://www.superherodb.com/pictures2/portraits/10/100/10831.jpg"
         }
     }
 }

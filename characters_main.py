@@ -67,7 +67,7 @@ def mode():
             except urllib.error.URLError as e:
                 print("\n[Network Error]: Could not reach the server.")
                 print("Please check your internet connection and verify the URL.")
-                exit()
+                return
 
 
 
@@ -80,8 +80,15 @@ def mode():
                 character_id = hero.get("id")
                 character_list[character_id] = character_name
 
-
-            choose = questionary.select("\n--Results--\n", choices=list(character_list.values())).ask()
+            try:
+                choose = questionary.select("\n--Results--\n", choices=list(character_list.values())).ask()
+            except:
+                print("\t!!That Character Could Not Be Identified!!")
+                time.sleep(2)
+                try: 
+                    mode()
+                except:
+                    print("!!Error Please Restart!!")
 
             for x in list(character_list.values()):
                 if choose == x:
@@ -231,8 +238,8 @@ def mode():
             except urllib.error.URLError as e:
                 print("\n[Network Error]: Could not reach the server.")
                 print("Please check your internet connection and verify the URL.")
-                exit()
-
+                return
+        print("Test Yes!!")
 
 if __name__ == "__main__":
     mode()
