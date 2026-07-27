@@ -1,82 +1,155 @@
-import os
 import json
+import os
+import time
+import g4f
 import pyfiglet
 import questionary
-import g4f
-import time
 
 
 def character_del(identity):
-    
-        with open("data.json") as file:
+    try:
+        with open("data.json", "r") as file:
             data = json.load(file)
-        for x in list(data.keys()):
-            if data[x].get("user_name") == identity:
-                del data[x]
-        with open("data.json","w") as file:
+
+        # Filter out keys belonging to the user
+        data = {
+            key: val
+            for key, val in data.items()
+            if val.get("user_name") != identity
+        }
+
+        with open("data.json", "w") as file:
             json.dump(data, file, indent=4)
-    
-
-
-
-
-
+    except FileNotFoundError:
+        print("data.json not found.")
 
 
 def lobby(name):
-    os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
-    selection = questionary.select("\n---Options---\n", choices=["Play","Reset","Character Enlist","Exit"]).ask()
+    os.system("cls" if os.name == "nt" else "clear")
+    print(pyfiglet.figlet_format("Battle_Game", font="graffiti"))
+
+    selection = questionary.select(
+        "\n---Options---\n",
+        choices=["Play", "Reset", "Character Enlist", "Exit"],
+    ).ask()
+
     if selection == "Play":
         return "play"
     elif selection == "Reset":
-        return "Reset" 
+        return "Reset"
     elif selection == "Character Enlist":
         return "Enlist"
     else:
         return "log out"
 
-def play():
-    os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
-    with open("characters.json","r") as file:
-        data = json.load(file)
-    character_register = []
-    universe_list = []
-    for x in data:
-        character_register.append(data[x]["biography"]["publisher"])
 
-    character_register = set(character_register)
-    while character_register == False:
-        print("!!The List is Empty!!")
-        decision = questionary.confirm("Would You Like To Quit?").ask()
-        if decision == True:
-            exit()
-    universe = questionary.select("\nSelect Your Universe:\n", choices=list(character_register)).ask()
-    for x in data:
-        if data[x]["biography"]["publisher"] == universe:
-            universe_list.append(data[x]["name"])
-    avatar = questionary.select("Select Your Avatar", choices=universe_list ).ask()
-    universe_list.remove(avatar)
-    
-    while universe_list == False:
-        print("!!The Universe List is Empty!!")
-        decision = questionary.confirm("\nWould You Like To Quit?\n").ask()
-        if decision == True:
-            exit()
+def play():
+    os.system("cls" if os.name == "nt" else "clear")
+    print(pyfiglet.figlet_format("Battle_Game", font="graffiti"))
 
     try:
-        team = questionary.checkbox("Pick A Maximum of Five Team Mates:", choices=universe_list).ask()
-    except:   
-        choice = questionary.confirm("\nThere Are No other Characters In this Universe.Enlist characters?\n").ask()
-        if choice == True:
+        with open("characters.json", "r") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        print("!! characters.json file not found !!")
+        return
+
+    # Extract available publishers/universes
+    character_register = list(
+        {
+            char_info.get("biography", {}).get("publisher")
+            for char_info in data.values()
+            if char_info.get("biography", {}).get("publisher")
+        }
+    )
+
+    if not character_register:
+        print("!! The Character Register is Empty !!")
+        if questionary.confirm("Would You Like To Quit?").ask():
+            return
+        return "character_enlist"
+
+    # --- 1. Player Universe & Avatar Selection ---
+    universe = questionary.select(
+        "\nSelect Your Universe:\n", choices=character_register
+    ).ask()
+
+    player_universe_list = [
+        char_info["name"]
+        for char_info in data.values()
+        if char_info.get("biography", {}).get("publisher") == universe
+    ]
+
+    avatar = questionary.select(
+        "Select Your Avatar", choices=player_universe_list
+    ).ask()
+    player_universe_list.remove(avatar)
+
+    # --- 2. Teammate Selection ---
+    if not player_universe_list:
+        print("\nNo other characters available in this universe for teammates.")
+        if questionary.confirm("Enlist characters?").ask():
             return "character_enlist"
-        
+        team = []
+    else:
+        while True:
+            team = questionary.checkbox(
+                "Pick A Maximum of Five Team Mates:",
+                choices=player_universe_list,
+            ).ask()
+
+            if team is None:  # User cancelled prompt
+                return
+
+            if 1 <= len(team) <= 5:
+                break
+            print("\n[!] Please select between 1 and 5 teammates.\n")
+
+    # --- 3. Enemy Universe Selection ---
+    enemy_universe = questionary.select(
+        "\nSelect The Enemy's Universe:\n", choices=character_register
+    ).ask()
+
+    if enemy_universe == universe:
+        # Exclude selected avatar & teammates from available enemies
+        excluded = set([avatar] + team)
+        available_enemies = [
+            char_info["name"]
+            for char_info in data.values()
+            if char_info.get("biography", {}).get("publisher") == enemy_universe
+            and char_info["name"] not in excluded
+        ]
+    else:
+        available_enemies = [
+            char_info["name"]
+            for char_info in data.values()
+            if char_info.get("biography", {}).get("publisher") == enemy_universe
+        ]
+
+    # --- 4. Enemy Team Selection ---
+    if not available_enemies:
+        print("\nThere are no available enemy characters in this universe.")
+        if questionary.confirm("Enlist characters?").ask():
+            return "character_enlist"
+        return
+
+    while True:
+        enemy_team = questionary.checkbox(
+            "Pick 1 to 5 Enemies:", choices=available_enemies
+        ).ask()
+
+        if enemy_team is None:  # User cancelled prompt
+            return
+
+        if 1 <= len(enemy_team) <= 5:
+            break
+        print("\n[!] Please select between 1 and 5 enemies.\n")
+
+    print("\n--- Battle Setup Complete ---")
+    print(f"Avatar: {avatar}")
+    print(f"Teammates: {team}")
+    print(f"Enemies: {enemy_team}")
 
 
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+    play()

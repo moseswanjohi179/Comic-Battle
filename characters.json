@@ -107,10 +107,10 @@
         "name": "John Constantine",
         "powerstats": {
             "intelligence": "63",
-            "strength": "10",
+            "strength": "5",
             "speed": "8",
-            "durability": "10",
-            "power": "10",
+            "durability": "5",
+            "power": "5",
             "combat": "65"
         },
         "biography": {
@@ -155,10 +155,10 @@
         "name": "Batman (Terry McGinnis)",
         "powerstats": {
             "intelligence": "81",
-            "strength": "15",
+            "strength": "25",
             "speed": "29",
-            "durability": "15",
-            "power": "15",
+            "durability": "25",
+            "power": "25",
             "combat": "90"
         },
         "biography": {
@@ -207,10 +207,10 @@
         "name": "Batman (Bruce Wayne)",
         "powerstats": {
             "intelligence": "100",
-            "strength": "25",
+            "strength": "15",
             "speed": "27",
-            "durability": "25",
-            "power": "25",
+            "durability": "15",
+            "power": "15",
             "combat": "100"
         },
         "biography": {
@@ -360,10 +360,10 @@
         "name": "Bird-Brain",
         "powerstats": {
             "intelligence": "25",
-            "strength": "10",
+            "strength": "5",
             "speed": "35",
-            "durability": "28",
-            "power": "21",
+            "durability": "5",
+            "power": "5",
             "combat": "42"
         },
         "biography": {
@@ -401,6 +401,54 @@
         },
         "image": {
             "url": "https://www.superherodb.com/pictures2/portraits/10/100/240.jpg"
+        }
+    },
+    "204": {
+        "id": "204",
+        "name": "Darkseid",
+        "powerstats": {
+            "intelligence": "88",
+            "strength": "100",
+            "speed": "83",
+            "durability": "100",
+            "power": "100",
+            "combat": "95"
+        },
+        "biography": {
+            "full-name": "Uxas",
+            "alter-egos": "No alter egos found.",
+            "aliases": [
+                "Dark God"
+            ],
+            "place-of-birth": "-",
+            "first-appearance": "Superman's Pal Jimmy Olsen #134 (November 1970)",
+            "publisher": "DC Comics",
+            "alignment": "bad"
+        },
+        "appearance": {
+            "gender": "Male",
+            "race": "New God",
+            "height": [
+                "8'9",
+                "267 cm"
+            ],
+            "weight": [
+                "1815 lb",
+                "817 kg"
+            ],
+            "eye-color": "Red",
+            "hair-color": "No Hair"
+        },
+        "work": {
+            "occupation": "Dictator of Apokolips",
+            "base": "-"
+        },
+        "connections": {
+            "group-affiliation": "New Gods of Apokolips(ruler), Secret Society of Supervillains",
+            "relatives": "Zonuz (father), Izaya (brother), Avia (sister, deceased), Grail (daughter), Kalibak (son), Orion (son), Deathspawn (son), Scot (nephew/adopted son)"
+        },
+        "image": {
+            "url": "https://www.superherodb.com/pictures2/portraits/10/100/668.jpg"
         }
     }
 }

@@ -2,5 +2,9 @@
     "profile_0": {
         "user_name": "Moses",
         "password": "$2b$12$gquJOwKrZq.YCgSjBHEMEOVHr4O7LDUED1gI5ns2Y9o3cA7dCnZee"
+    },
+    "profile_1": {
+        "user_name": "Jamal",
+        "password": "$2b$12$GdPmfZjzfuQdCx1Skokup.T7AQ7s1j7rYCHgSIyNXvTvAbTTPklt."
     }
 }
