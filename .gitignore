@@ -1,0 +1,12 @@
+# Personal data (never commit)
+.env
+data.json
+characters.json
+.hash_cache
+
+# Bytecode / cache
+__pycache__/
+*.py[cod]
+
+# OS
+.DS_Store

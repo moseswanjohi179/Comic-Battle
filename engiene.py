@@ -4,6 +4,7 @@ import time
 import g4f
 import pyfiglet
 import questionary
+import numpy as np
 
 
 def character_del(identity):
@@ -145,11 +146,69 @@ def play():
             break
         print("\n[!] Please select between 1 and 5 enemies.\n")
 
-    print("\n--- Battle Setup Complete ---")
-    print(f"Avatar: {avatar}")
-    print(f"Teammates: {team}")
-    print(f"Enemies: {enemy_team}")
+
+    # -- 5. Fight Calculation ---
+
+
+
+    Weights = np.array([0.15, 0.10, 0.20, 0.15, 0.10, 0.30])
+
+    # Hero Team Calculation
+    total_output = np.zeros(6)
+    team.append(avatar)
+    for each_name in team:
+        for character in data.values():
+            if character.get("name") == each_name:
+                stats = character.get("powerstats", {})
+                stat_vals = [
+                    float(v) if v != "null" else 0.0 for v in stats.values()
+                ]
+                total_output += Weights * np.array(stat_vals)
+
+    hero_score = np.sum(total_output)
+
+    # Enemy Team Calculation
+    total_enemy_output = np.zeros(6)
+    for each_name in enemy_team:
+        for character in data.values():
+            if character.get("name") == each_name:
+                stats = character.get("powerstats", {})
+                stat_vals = [
+                    float(v) if v != "null" else 0.0 for v in stats.values()
+                ]
+                total_enemy_output += Weights * np.array(stat_vals)
+
+    enemy_score = np.sum(total_enemy_output)
+
+    # Output Scores
+    print(f"Hero Score: {hero_score:.2f}")
+    print(f"Enemy Score: {enemy_score:.2f}")
+
+    # Comparison
+    if hero_score > enemy_score:
+        print("Result: Winner - Hero Team")
+    elif enemy_score > hero_score:
+        print("Result: Winner - Enemy Team")
+    else:
+        print("Result: Tie")
+
+    def exiting():
+        move_on = questionary.confirm("\nExit?").ask()
+        if move_on == False:
+            time.sleep(10)
+            exiting()
+        else:
+            return
+    exiting()
+
+
 
 
 if __name__ == "__main__":
     play()
+
+
+
+
+
+

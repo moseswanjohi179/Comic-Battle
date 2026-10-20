@@ -7,7 +7,6 @@ import webbrowser
 import pyfiglet
 import getpass
 import time
-import questionary
 from dotenv import load_dotenv, set_key
 from cryptography.fernet import Fernet
 
@@ -281,7 +280,7 @@ def mode():
                             time.sleep(5)
 
 
-                        elif "Add to Character List":
+                        elif question == "Add to Character List":
                             info = hero_archive
                             try:
                                 with open("characters.json","r") as file:
