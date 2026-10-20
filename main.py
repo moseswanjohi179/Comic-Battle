@@ -4,7 +4,7 @@ import pyfiglet
 import questionary
 import time
 import getpass
-from engiene import lobby
+from engiene import lobby, banner
 from alive_progress import alive_bar
 import bcrypt
 
@@ -47,7 +47,7 @@ def storage_function():
 
 
 def regstration():
-    os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
+    os.system('cls' if os.name == 'nt' else 'clear'); print(banner())
     global user_name
     global hashed
     
@@ -62,7 +62,7 @@ def regstration():
 
 
 def introduction():
-    os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
+    os.system('cls' if os.name == 'nt' else 'clear'); print(banner())
     from engiene import character_del, play
     answer = questionary.confirm("Are you new here?").ask()
     if answer == True:

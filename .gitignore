@@ -8,5 +8,9 @@ characters.json
 __pycache__/
 *.py[cod]
 
+# Virtualenv
+.venv/
+venv/
+
 # OS
 .DS_Store

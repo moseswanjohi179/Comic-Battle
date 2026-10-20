@@ -80,7 +80,7 @@ def mode():
                     url, 
                     headers={'User-Agent': 'Mozilla/5.0'}
                 )
-            except:
+            except Exception:
                 print("!!There was an unforseen error!!")
 
             try:
@@ -109,7 +109,7 @@ def mode():
 
             try:
                 choose = questionary.select("\n--Results--\n", choices=list(character_list.values())).ask()
-            except:
+            except Exception:
                 print("\t!!That Character Could Not Be Identified!!")
                 time.sleep(2)
                 try: 
@@ -156,9 +156,8 @@ def mode():
                                         print("="*40 + "\n")
                                         try:
                                             what_to_do_with_xter()
-                                        except:
-                                            print("\nError Plz Restart--\n")
-                                            
+                                        except Exception:
+                                            print("\nError Plz Restart--\n") 
                             elif option == "see image":
                                 reseter()
                                 for x in hero_list:
@@ -170,9 +169,8 @@ def mode():
                                         time.sleep(5)
                                         try:
                                             what_to_do_with_xter()
-                                        except:
-                                            print("\nError Plz Restart--\n")
-                                        
+                                        except Exception:
+                                            print("\nError Plz Restart--\n") 
                                     
 
 
@@ -203,7 +201,7 @@ def mode():
 
                                 try:
                                     what_to_do_with_xter()
-                                except:
+                                except Exception:
                                     print("\nError Plz Restart--\n") 
                             else:
                                 return      
@@ -264,7 +262,7 @@ def mode():
                             print("="*40 + "\n")
                             try:
                                 what_to_do_with_xter_2()
-                            except:
+                            except Exception:
                                 print("\nError Plz Restart--\n")
 
                         elif question == "see image":
@@ -275,7 +273,7 @@ def mode():
                             print("\nOpening browser please wait....\n")
                             try:
                                 what_to_do_with_xter_2()
-                            except:
+                            except Exception:
                                 print("\nError Plz Restart--\n")
                             time.sleep(5)
 
@@ -303,7 +301,7 @@ def mode():
                                     json.dump(data, file, indent=4)
                             try:
                                 what_to_do_with_xter_2()
-                            except:
+                            except Exception:
                                 print("\nError Plz Restart--\n")
                         else:
                             return
@@ -319,8 +317,6 @@ def mode():
 if __name__ == "__main__":
     mode()
      
-
-#6b24282000b8192d8347081aa910d9b4
 
 
 

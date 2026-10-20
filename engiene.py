@@ -7,6 +7,15 @@ import questionary
 import numpy as np
 
 
+def banner(text="Battle_Game"):
+    """Render ASCII title using the graffiti font, with fallbacks."""
+    for font in ("graffiti", "standard"):
+        try:
+            return pyfiglet.figlet_format(text, font=font)
+        except Exception:
+            continue
+    return text
+
 def character_del(identity):
     try:
         with open("data.json", "r") as file:
@@ -27,7 +36,7 @@ def character_del(identity):
 
 def lobby(name):
     os.system("cls" if os.name == "nt" else "clear")
-    print(pyfiglet.figlet_format("Battle_Game", font="graffiti"))
+    print(banner())
 
     selection = questionary.select(
         "\n---Options---\n",
@@ -46,7 +55,7 @@ def lobby(name):
 
 def play():
     os.system("cls" if os.name == "nt" else "clear")
-    print(pyfiglet.figlet_format("Battle_Game", font="graffiti"))
+    print(banner())
 
     try:
         with open("characters.json", "r") as file:
@@ -84,6 +93,8 @@ def play():
     avatar = questionary.select(
         "Select Your Avatar", choices=player_universe_list
     ).ask()
+    if avatar is None:
+        return
     player_universe_list.remove(avatar)
 
     # --- 2. Teammate Selection ---
@@ -193,12 +204,11 @@ def play():
         print("Result: Tie")
 
     def exiting():
-        move_on = questionary.confirm("\nExit?").ask()
-        if move_on == False:
+        while True:
+            move_on = questionary.confirm("\nExit?").ask()
+            if move_on != False:
+                return
             time.sleep(10)
-            exiting()
-        else:
-            return
     exiting()
 
 
