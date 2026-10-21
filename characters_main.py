@@ -1,6 +1,7 @@
 import json
 from character_manager import update_characters
 import urllib.request
+from engiene import banner
 import questionary
 import os
 import webbrowser
@@ -8,17 +9,14 @@ import pyfiglet
 import getpass
 import time
 from dotenv import load_dotenv, set_key
-from cryptography.fernet import Fernet
 
 def reseter():
-    os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
+    os.system('cls' if os.name == 'nt' else 'clear'); print(banner())
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 JSON_PATH = os.path.join(SCRIPT_DIR, "characters.json")
 
 ENV_FILE = os.path.join(SCRIPT_DIR, ".env")
-key = b'aymZXEycJZZJC9ctMIGb9FhQGzHu6CyKqj54cGZaXBE='
-cipher = Fernet(key)
 
 def initialize_api_key():
     if not os.path.exists(ENV_FILE):
@@ -37,14 +35,7 @@ def initialize_api_key():
             webbrowser.open("https://www.superheroapi.com/")
             time.sleep(10)
             
-        #Encrypting credential
-        
         user_input = getpass.getpass("Enter your API Key: ").strip()
-        raw_bytes = cipher.encrypt(f"{user_input}".encode())
-        hex_string = raw_bytes.hex()
-        user_input = hex_string
-        
-        
         
         if not user_input:
             raise ValueError("API Key cannot be empty.")
@@ -63,10 +54,7 @@ def mode():
         os.system('cls' if os.name == 'nt' else 'clear'); title = pyfiglet.figlet_format("Battle_Game", font= "graffiti"); print(title)
         access_token = initialize_api_key()
         access_token = access_token.strip()
-        #Decode credential
-        original_bytes = cipher.decrypt(bytes.fromhex(access_token))
-        access_token = original_bytes.decode()
-        
+
         choice = questionary.select("Mode", choices=["Search by ID","Search by Name"]).ask()
         if choice == "Search by Name":
             reseter()
