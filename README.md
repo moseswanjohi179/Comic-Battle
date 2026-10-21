@@ -13,6 +13,36 @@ Built with Python + `pyfiglet`, `questionary`, `bcrypt`, `numpy`, `g4f`, and `al
 
 ## Quick start
 
+### One-liner (Linux / macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/moseswanjohi179/Comic-Battle/main/install.sh | bash
+```
+
+Then activate and run:
+
+```bash
+cd Comic-Battle
+source .venv/bin/activate
+python main.py
+```
+
+### One-liner (Windows PowerShell)
+
+```powershell
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/moseswanjohi179/Comic-Battle/main/install.ps1 -OutFile install.ps1; ./install.ps1
+```
+
+Then activate and run:
+
+```powershell
+cd Comic-Battle
+.venv\Scripts\activate
+python main.py
+```
+
+### From a cloned repo
+
 ```bash
 # Clone
 git clone https://github.com/moseswanjohi179/Comic-Battle.git

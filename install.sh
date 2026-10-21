@@ -1,9 +1,27 @@
 #!/usr/bin/env bash
 # Comic-Battle installer
-# Sets up a virtualenv, installs dependencies, and verifies the bundled graffiti font.
+# Works both from a cloned repo and via:  curl -fsSL <raw install.sh> | bash
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RAW_BASE="https://raw.githubusercontent.com/moseswanjohi179/Comic-Battle/main"
+
+# --- Figure out where the repo files are -------------------------------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "$PWD")"
+
+if [ ! -f "$SCRIPT_DIR/requirements.txt" ]; then
+  # Being piped via curl | bash — download the project files to a temp dir
+  TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "$TMP_DIR"' EXIT
+  mkdir -p "$TMP_DIR/fonts"
+
+  echo "==> Downloading project files to $TMP_DIR"
+  curl -fsSL "$RAW_BASE/requirements.txt" -o "$TMP_DIR/requirements.txt"
+  curl -fsSL "$RAW_BASE/fonts/graffiti.flf" -o "$TMP_DIR/fonts/graffiti.flf"
+
+  SCRIPT_DIR="$TMP_DIR"
+fi
+
+REPO_DIR="$SCRIPT_DIR"
 PYTHON="${PYTHON:-python3}"
 VENV_DIR="$REPO_DIR/.venv"
 
