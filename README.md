@@ -68,6 +68,34 @@ python -c "import pyfiglet; pyfiglet.FigletFont.installFonts('fonts/graffiti.flf
 python main.py
 ```
 
+## Installer flags (install.sh / install.ps1)
+
+Both installers accept the same flags:
+
+| Flag | Meaning |
+|------|---------|
+| `-h, --help` | Show help message |
+| `-v, --version` | Show installer version |
+| `-q, --quiet` | Suppress non-essential output |
+| `-f, --force` | Recreate the virtualenv even if it exists |
+| `-u, --update` | Re-download latest files from GitHub and re-install (upgrade) |
+| `--no-progress` | Disable progress bars / spinners |
+
+Example upgrade:
+```bash
+bash install.sh -u        # Linux/macOS
+.\install.ps1 -Update     # Windows PowerShell
+```
+
+## Shortcut launcher
+
+The installer creates a `comic-battle` script so you never have to manually activate the venv:
+
+```bash
+./comic-battle        # Linux/macOS + Git Bash
+.\comic-battle.ps1    # Windows PowerShell
+```
+
 ## Superhero API key
 
 The enlistment feature needs a free key from [superheroapi.com](https://www.superheroapi.com/).
@@ -91,6 +119,8 @@ Comic-Battle/
 ├── fonts/graffiti.flf # Bundled figlet font (not in pyfiglet by default)
 ├── install.sh         # Linux/macOS installer
 ├── install.ps1        # Windows PowerShell installer
+├── comic-battle       # Shortcut launcher (created by installer)
+├── comic-battle.ps1   # Shortcut launcher (created by installer)
 ├── requirements.txt   # Pinned Python dependencies
 ├── .env               # Your SUPERHERO_API key (gitignored)
 ├── .gitignore
