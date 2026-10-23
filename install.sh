@@ -1,28 +1,22 @@
 #!/usr/bin/env bash
 #
-# Comic-Battle installer
-#   From a cloned repo:   bash install.sh
-#   One-liner (curl):     curl -fsSL <raw install.sh> | bash
+# Comic-Battle installer (Linux / macOS / Git Bash)
 #
-# Options:
-#   -h, --help       Show this help message
-#   -v, --version    Show installer version
-#   -q, --quiet      Suppress non-essential output
-#   -f, --force      Recreate the virtualenv even if it exists
-#   --no-progress    Disable progress bars / spinners
+#   One-liner:   curl -fsSL https://raw.githubusercontent.com/moseswanjohi179/Comic-Battle/main/install.sh | bash
+#   From clone:  bash install.sh
+#
+# One-liner installs go to ~/.local/share/comic-battle (override with COMIC_BATTLE_DIR).
+# A "comic-battle" command is added to ~/.local/bin plus an application-menu
+# / desktop shortcut, so you can launch the game like any other program.
 #
 set -uo pipefail
 
-INSTALLER_VERSION="1.0.0"
+INSTALLER_VERSION="2.0.0"
 RAW_BASE="https://raw.githubusercontent.com/moseswanjohi179/Comic-Battle/main"
+REQUIRED_FILES=(requirements.txt fonts/graffiti.flf paths.py main.py engiene.py character_manager.py characters_main.py)
+OPTIONAL_FILES=(install.sh LICENSE README.md)
 
-# --- CLI flags -----------------------------------------------------------
-QUIET=0
-FORCE=0
-NO_PROGRESS=0
-SHOW_HELP=0
-SHOW_VERSION=0
-UPDATE=0
+QUIET=0; FORCE=0; NO_PROGRESS=0; SHOW_HELP=0; SHOW_VERSION=0; UPDATE=0; UNINSTALL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -30,8 +24,9 @@ while [[ $# -gt 0 ]]; do
     -v|--version) SHOW_VERSION=1; shift ;;
     -q|--quiet) QUIET=1; shift ;;
     -f|--force) FORCE=1; shift ;;
-    --no-progress) NO_PROGRESS=1; shift ;;
     -u|--update) UPDATE=1; shift ;;
+    --uninstall) UNINSTALL=1; shift ;;
+    --no-progress) NO_PROGRESS=1; shift ;;
     *) echo "Unknown option: $1" >&2; echo "Run 'install.sh --help' for usage." >&2; exit 2 ;;
   esac
 done
@@ -47,21 +42,17 @@ Options:
   -v, --version    Show installer version
   -q, --quiet      Suppress non-essential output
   -f, --force      Recreate the virtualenv even if it already exists
-  -u, --update     Re-download latest files from GitHub and re-install (upgrade)
+  -u, --update     Re-download the latest files from GitHub and re-install
+  --uninstall      Remove the app, command and shortcuts (your saves are kept)
   --no-progress    Disable progress bars / spinners
 
 Examples:
-  bash install.sh                    # Standard install from a cloned repo
-  curl -fsSL <raw install.sh> | bash # One-line install (downloads files first)
-  bash install.sh -f                 # Force rebuild of the virtualenv
+  curl -fsSL $RAW_BASE/install.sh | bash   # one-line install
+  bash install.sh                          # install from a cloned repo
+  bash install.sh -u                       # upgrade to the latest version
 
-After install:
-  source .venv/bin/activate          # (Linux/macOS)
-  .venv\Scripts\activate             # (Windows)
-  python main.py                     # Launch the game
-
-  Or use the shortcut:
-  ./comic-battle                     # Runs the game directly (no manual activate)
+After install, start the game with:   comic-battle
+(or from your application menu / desktop shortcut)
 EOF
   exit 0
 fi
@@ -71,107 +62,147 @@ if [[ "$SHOW_VERSION" -eq 1 ]]; then
   exit 0
 fi
 
-# --- Logging helpers -----------------------------------------------------
-log()   { [[ "$QUIET" -eq 0 ]] && echo "==> $*"; }
-warn()  { echo "[!] $*" >&2; }
-err()   { echo "[ERROR] $*" >&2; exit 1; }
-
-# --- Progress / step helpers --------------------------------------------
-STEP_TOTAL=7
-STEP_CURRENT=0
-
-step() {
-  STEP_CURRENT=$((STEP_CURRENT + 1))
-  if [[ "$NO_PROGRESS" -eq 0 && "$QUIET" -eq 0 ]]; then
-    local pct=$((STEP_CURRENT * 100 / STEP_TOTAL))
-    local filled=$((40 * STEP_CURRENT / STEP_TOTAL))
-    local bar=""
-    for ((i=0;i<filled;i++)); do bar+="#"; done
-    for ((i=filled;i<40;i++)); do bar+="-"; done
-    printf "\r[%s] %d%% %s" "$bar" "$pct" "$1"
-  else
-    echo "[$STEP_CURRENT/$STEP_TOTAL] $1"
-  fi
-}
+# --- Terminal helpers ----------------------------------------------------
+if [[ -t 1 ]]; then CLR=$'\r\033[K'; IS_TTY=1; else CLR=""; IS_TTY=0; fi
+FANCY=0
+[[ "$IS_TTY" -eq 1 && "$NO_PROGRESS" -eq 0 && "$QUIET" -eq 0 ]] && FANCY=1
 
 spinner_pid=""
-start_spinner() {
-  if [[ "$NO_PROGRESS" -eq 1 || "$QUIET" -eq 1 ]]; then return; fi
-  local msg="$1"
-  local i=0
-  local sp="/-\|"
-  (
-    while true; do
-      i=$(((i + 1) % 4))
-      printf "\r[%c] %s" "${sp:$i:1}" "$msg"
-      sleep 0.1
-    done
-  ) &
-  spinner_pid=$!
-}
-
 stop_spinner() {
   if [[ -n "${spinner_pid:-}" ]]; then
     kill "$spinner_pid" 2>/dev/null || true
     wait "$spinner_pid" 2>/dev/null || true
     spinner_pid=""
-    printf "\r"
+    printf '%s' "$CLR"
+  fi
+}
+start_spinner() {
+  [[ "$FANCY" -eq 1 ]] || return 0
+  local msg="$1"
+  (
+    local i=0 sp='/-\|'
+    while true; do
+      i=$(((i + 1) % 4))
+      printf '\r[%s] %s' "${sp:$i:1}" "$msg"
+      sleep 0.1
+    done
+  ) &
+  spinner_pid=$!
+}
+trap 'stop_spinner' EXIT
+trap 'stop_spinner; echo; exit 130' INT TERM
+
+log()  { stop_spinner; [[ "$QUIET" -eq 0 ]] && echo "${CLR}==> $*"; return 0; }
+warn() { stop_spinner; echo "${CLR}[!] $*" >&2; }
+err()  { stop_spinner; echo "${CLR}[ERROR] $*" >&2; exit 1; }
+
+STEP_TOTAL=8
+STEP_CURRENT=0
+step() {
+  STEP_CURRENT=$((STEP_CURRENT + 1))
+  if [[ "$FANCY" -eq 1 ]]; then
+    local pct=$((STEP_CURRENT * 100 / STEP_TOTAL))
+    local filled=$((40 * STEP_CURRENT / STEP_TOTAL))
+    local bar="" i
+    for ((i=0;i<filled;i++)); do bar+="#"; done
+    for ((i=filled;i<40;i++)); do bar+="-"; done
+    printf '%s[%s] %d%% %s' "$CLR" "$bar" "$pct" "$1"
+  elif [[ "$QUIET" -eq 0 ]]; then
+    echo "[$STEP_CURRENT/$STEP_TOTAL] $1"
   fi
 }
 
-# --- Determine repo directory -------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "$PWD")"
-
-# Download files when: piped via curl (no requirements.txt present) OR --update
-DOWNLOAD_FILES=0
-if [[ ! -f "$SCRIPT_DIR/requirements.txt" ]]; then
-  DOWNLOAD_FILES=1
-elif [[ "$UPDATE" -eq 1 ]]; then
-  DOWNLOAD_FILES=1
-  log "Update mode: re-downloading latest files from GitHub"
+# --- Locations -----------------------------------------------------------
+# "Local" mode = running install.sh from a cloned repo. Otherwise (curl | bash)
+# the files are downloaded into a permanent folder - NOT a temp dir.
+LOCAL_DIR=""
+SRC="${BASH_SOURCE[0]:-}"
+if [[ -n "$SRC" && -f "$SRC" ]]; then
+  cand="$(cd "$(dirname "$SRC")" 2>/dev/null && pwd)"
+  if [[ -n "$cand" && -f "$cand/requirements.txt" && -f "$cand/main.py" ]]; then
+    LOCAL_DIR="$cand"
+  fi
 fi
 
-if [[ "$DOWNLOAD_FILES" -eq 1 ]]; then
-  if [[ "$UPDATE" -eq 1 ]]; then
-    # Update in place — download into the current repo dir
-    DL_DIR="$SCRIPT_DIR"
-    CLEANUP=0
-  else
-    # Piped via curl | bash — download to a temp dir
-    DL_DIR="$(mktemp -d)"
-    trap 'rm -rf "$DL_DIR"' EXIT
-    CLEANUP=1
-  fi
-  mkdir -p "$DL_DIR/fonts"
+if [[ -n "$LOCAL_DIR" ]]; then
+  INSTALL_DIR="$LOCAL_DIR"
+else
+  INSTALL_DIR="${COMIC_BATTLE_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/comic-battle}"
+fi
 
-  step "Downloading project files"
-  for f in requirements.txt fonts/graffiti.flf main.py engiene.py character_manager.py characters_main.py LICENSE; do
-    if ! curl -fsSL "$RAW_BASE/$f" -o "$DL_DIR/$f" 2>/dev/null; then
-      err "Failed to download $f. Check your internet connection."
+BIN_DIR="$HOME/.local/bin"
+APPS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+DATA_HOME="${COMIC_BATTLE_HOME:-$HOME/.comic-battle}"
+DESKTOP_DIR=""
+if command -v xdg-user-dir >/dev/null 2>&1; then DESKTOP_DIR="$(xdg-user-dir DESKTOP 2>/dev/null || true)"; fi
+[[ -z "$DESKTOP_DIR" ]] && DESKTOP_DIR="$HOME/Desktop"
+
+# --- Uninstall -----------------------------------------------------------
+if [[ "$UNINSTALL" -eq 1 ]]; then
+  log "Removing command and shortcuts"
+  rm -f "$BIN_DIR/comic-battle" "$APPS_DIR/comic-battle.desktop" \
+        "$DESKTOP_DIR/Comic-Battle.desktop" "$DESKTOP_DIR/Comic-Battle.command"
+  if [[ -n "$LOCAL_DIR" ]]; then
+    rm -rf "$INSTALL_DIR/.venv" "$INSTALL_DIR/comic-battle"
+  elif [[ -n "$INSTALL_DIR" && "$INSTALL_DIR" != "/" && "$INSTALL_DIR" != "$HOME" ]]; then
+    rm -rf "$INSTALL_DIR"
+  fi
+  echo "Comic-Battle removed. Your accounts and roster were kept in: $DATA_HOME"
+  echo "(delete that folder if you want them gone too)"
+  exit 0
+fi
+
+# --- Step 1: get the project files ---------------------------------------
+command -v curl >/dev/null 2>&1 || [[ -n "$LOCAL_DIR" && "$UPDATE" -eq 0 ]] || err "curl is required. Install it (e.g. 'sudo apt install curl') and re-run."
+
+fetch() {  # fetch <relative path> <required: 1|0>
+  local f="$1" required="$2" dest="$INSTALL_DIR/$1" tmp why attempt
+  mkdir -p "$(dirname "$dest")" || err "Cannot create $(dirname "$dest")"
+  tmp="$(mktemp)"
+  for attempt in 1 2 3; do
+    if curl -fsSL --connect-timeout 15 "$RAW_BASE/$f" -o "$tmp" 2>"$tmp.err"; then
+      mv -f "$tmp" "$dest"; chmod 644 "$dest"; rm -f "$tmp.err"
+      return 0
+    fi
+    sleep 1
+  done
+  why="$(tr '\n' ' ' <"$tmp.err" 2>/dev/null)"
+  rm -f "$tmp" "$tmp.err"
+  if [[ "$required" -eq 1 ]]; then
+    err "Could not download '$f' (${why:-no details}). Check your internet connection. URL: $RAW_BASE/$f"
+  else
+    warn "Optional file '$f' could not be downloaded - skipping."
+  fi
+}
+
+step "Preparing project files"
+if [[ -z "$LOCAL_DIR" || "$UPDATE" -eq 1 ]]; then
+  [[ "$UPDATE" -eq 1 ]] && log "Update mode: downloading the latest files"
+  mkdir -p "$INSTALL_DIR/fonts" || err "Cannot create $INSTALL_DIR"
+  for f in "${REQUIRED_FILES[@]}"; do fetch "$f" 1; done
+  for f in "${OPTIONAL_FILES[@]}"; do fetch "$f" 0; done
+fi
+
+REPO_DIR="$INSTALL_DIR"
+VENV_DIR="$REPO_DIR/.venv"
+log "Comic-Battle installer v$INSTALLER_VERSION"
+log "Install dir: $REPO_DIR"
+
+# --- Step 2: Python ------------------------------------------------------
+step "Checking Python"
+PYTHON="${PYTHON:-}"
+if [[ -z "$PYTHON" ]]; then
+  for cand in python3 python; do
+    if command -v "$cand" >/dev/null 2>&1 && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+      PYTHON="$cand"; break
     fi
   done
-
-  if [[ "$CLEANUP" -eq 1 ]]; then
-    SCRIPT_DIR="$DL_DIR"
-  fi
 fi
-
-REPO_DIR="$SCRIPT_DIR"
-PYTHON="${PYTHON:-python3}"
-VENV_DIR="$REPO_DIR/.venv"
-
-log "Comic-Battle installer v$INSTALLER_VERSION"
-log "Repo dir: $REPO_DIR"
-
-# --- Step 1: Python ------------------------------------------------------
-step "Checking Python"
-if ! command -v "$PYTHON" >/dev/null 2>&1; then
-  err "$PYTHON not found. Install Python 3.10+ and re-run."
-fi
-PY_VERSION=$("$PYTHON" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null) || err "Cannot run $PYTHON"
+[[ -n "$PYTHON" ]] || err "Python 3.10 or newer was not found. Install it (e.g. 'sudo apt install python3 python3-venv python3-pip') and re-run."
+PY_VERSION="$("$PYTHON" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null)" || err "Cannot run $PYTHON"
 log "Using Python $PY_VERSION"
 
-# --- Step 2: Virtualenv --------------------------------------------------
+# --- Step 3: Virtualenv --------------------------------------------------
 step "Creating virtualenv"
 if [[ -d "$VENV_DIR" && "$FORCE" -eq 1 ]]; then
   log "Removing existing virtualenv (--force)"
@@ -179,102 +210,155 @@ if [[ -d "$VENV_DIR" && "$FORCE" -eq 1 ]]; then
 fi
 if [[ ! -d "$VENV_DIR" ]]; then
   start_spinner "Creating virtualenv"
-  if ! "$PYTHON" -m venv "$VENV_DIR" >/dev/null 2>&1; then
-    stop_spinner
-    err "Failed to create virtualenv."
-  fi
+  VENV_LOG="$("$PYTHON" -m venv "$VENV_DIR" 2>&1)" || {
+    rm -rf "$VENV_DIR"
+    err "Failed to create the virtualenv. On Debian/Ubuntu/Parrot run: sudo apt install python3-venv python3-pip
+$VENV_LOG"
+  }
   stop_spinner
-  log "Virtualenv created at $VENV_DIR"
+  log "Virtualenv created"
 else
   log "Virtualenv already exists (use -f to rebuild)"
 fi
 
 VENV_PYTHON="$VENV_DIR/bin/python"
-if [[ ! -x "$VENV_PYTHON" ]]; then
-  VENV_PYTHON="$VENV_DIR/Scripts/python.exe"
-fi
-if [[ ! -x "$VENV_PYTHON" ]]; then
-  err "Virtualenv python not found at $VENV_PYTHON"
-fi
+[[ -x "$VENV_PYTHON" ]] || VENV_PYTHON="$VENV_DIR/Scripts/python.exe"
+[[ -x "$VENV_PYTHON" ]] || err "Virtualenv python not found in $VENV_DIR (try --force)"
 
-# --- Step 3: Upgrade pip -------------------------------------------------
+# --- Step 4: pip ---------------------------------------------------------
 step "Upgrading pip"
 start_spinner "Upgrading pip"
-if ! "$VENV_PYTHON" -m pip install --upgrade pip -q >/dev/null 2>&1; then
-  stop_spinner
-  warn "pip upgrade failed — continuing with existing pip"
-else
-  stop_spinner
-fi
+"$VENV_PYTHON" -m pip install --upgrade pip -q >/dev/null 2>&1 || warn "pip upgrade failed - continuing with the existing pip"
+stop_spinner
 
-# --- Step 4: Install dependencies ----------------------------------------
+# --- Step 5: dependencies ------------------------------------------------
 step "Installing dependencies"
-start_spinner "Installing Python packages (this may take a minute)"
+start_spinner "Installing Python packages (this may take a few minutes)"
 PIP_LOG="$(mktemp)"
 if ! "$VENV_PYTHON" -m pip install -r "$REPO_DIR/requirements.txt" >"$PIP_LOG" 2>&1; then
   stop_spinner
-  err "Dependency install failed. Full log saved to: $PIP_LOG"
+  tail -n 15 "$PIP_LOG" >&2
+  err "Dependency install failed. Full log: $PIP_LOG"
 fi
 stop_spinner
 rm -f "$PIP_LOG"
 log "Dependencies installed"
 
-# --- Step 5: Register graffiti font --------------------------------------
+# --- Step 6: graffiti font (optional - the game falls back to a standard font)
 step "Registering graffiti font"
 FONT_FILE="$REPO_DIR/fonts/graffiti.flf"
-if [[ ! -f "$FONT_FILE" ]]; then
-  err "fonts/graffiti.flf not found in $REPO_DIR"
-fi
-start_spinner "Registering fonts/graffiti.flf with pyfiglet"
-FONT_OUT="$("$VENV_PYTHON" - "$FONT_FILE" 2>&1 <<'PY'
-import sys, pyfiglet
-pyfiglet.FigletFont.installFonts(sys.argv[1])
-print("OK")
+if [[ -f "$FONT_FILE" ]]; then
+  if "$VENV_PYTHON" - "$FONT_FILE" >/dev/null 2>&1 <<'PY'
+import os, shutil, sys, pyfiglet
+src = sys.argv[1]
+try:
+    pyfiglet.figlet_format("x", font="graffiti")
+    sys.exit(0)
+except Exception:
+    pass
+try:
+    pyfiglet.FigletFont.installFonts(src)
+except Exception:
+    pass
+try:
+    pyfiglet.figlet_format("x", font="graffiti")
+    sys.exit(0)
+except Exception:
+    pass
+base = os.path.dirname(pyfiglet.__file__)
+for sub in ("fonts-contrib", "fonts-standard", "fonts"):
+    d = os.path.join(base, sub)
+    if os.path.isdir(d):
+        shutil.copy(src, d)
+        break
+pyfiglet.figlet_format("x", font="graffiti")
 PY
-)" || { stop_spinner; err "Failed to register graffiti font"; }
-stop_spinner
-log "Graffiti font registered"
-
-# --- Step 6: Create shortcut launcher ------------------------------------
-step "Creating shortcut launcher"
-cat > "$REPO_DIR/comic-battle" <<'LAUNCHER'
-#!/usr/bin/env bash
-# Comic-Battle launcher — runs the game without manually activating the venv
-set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_PYTHON="$SCRIPT_DIR/.venv/bin/python"
-if [[ ! -x "$VENV_PYTHON" ]]; then
-  VENV_PYTHON="$SCRIPT_DIR/.venv/Scripts/python.exe"
+  then
+    log "Graffiti font registered"
+  else
+    warn "Could not register the graffiti font - the game will use the standard title font."
+  fi
+else
+  warn "fonts/graffiti.flf missing - the game will use the standard title font."
 fi
-if [[ ! -x "$VENV_PYTHON" ]]; then
-  echo "[ERROR] Virtualenv not found. Run install.sh first." >&2
+
+# --- Step 7: launcher + shortcuts ----------------------------------------
+step "Creating shortcuts"
+LAUNCHER="$REPO_DIR/comic-battle"
+cat > "$LAUNCHER" <<LAUNCHER_EOF
+#!/usr/bin/env bash
+# Comic-Battle launcher - runs the game without activating the venv by hand
+APP_DIR="$REPO_DIR"
+PY="\$APP_DIR/.venv/bin/python"
+[[ -x "\$PY" ]] || PY="\$APP_DIR/.venv/Scripts/python.exe"
+if [[ ! -x "\$PY" ]]; then
+  echo "[ERROR] Comic-Battle is not installed correctly. Re-run install.sh" >&2
   exit 1
 fi
-exec "$VENV_PYTHON" "$SCRIPT_DIR/main.py" "$@"
-LAUNCHER
-chmod +x "$REPO_DIR/comic-battle"
-log "Shortcut created: ./comic-battle"
+exec "\$PY" "\$APP_DIR/main.py" "\$@"
+LAUNCHER_EOF
+chmod +x "$LAUNCHER"
 
-# --- Step 7: Done + guidance ---------------------------------------------
+SHORTCUT_NOTE=""
+mkdir -p "$BIN_DIR" && cp -f "$LAUNCHER" "$BIN_DIR/comic-battle" && chmod +x "$BIN_DIR/comic-battle"
+
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+  case "${SHELL:-}" in *zsh) RC="$HOME/.zshrc" ;; *) RC="$HOME/.bashrc" ;; esac
+  PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
+  if ! grep -qsF "$PATH_LINE" "$RC" 2>/dev/null; then
+    printf '\n# Added by Comic-Battle installer\n%s\n' "$PATH_LINE" >> "$RC"
+  fi
+  SHORTCUT_NOTE="Open a new terminal (or run: source $RC) so the 'comic-battle' command is found."
+fi
+
+case "$(uname -s)" in
+  Darwin)
+    if [[ -d "$HOME/Desktop" ]]; then
+      printf '#!/usr/bin/env bash\nexec "%s"\n' "$BIN_DIR/comic-battle" > "$HOME/Desktop/Comic-Battle.command"
+      chmod +x "$HOME/Desktop/Comic-Battle.command"
+    fi
+    ;;
+  Linux)
+    mkdir -p "$APPS_DIR"
+    cat > "$APPS_DIR/comic-battle.desktop" <<DESKTOP_EOF
+[Desktop Entry]
+Type=Application
+Name=Comic-Battle
+Comment=Terminal comic character battle simulator
+Exec="$BIN_DIR/comic-battle"
+Icon=utilities-terminal
+Terminal=true
+Categories=Game;
+DESKTOP_EOF
+    chmod +x "$APPS_DIR/comic-battle.desktop"
+    command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APPS_DIR" >/dev/null 2>&1 || true
+    if [[ -d "$DESKTOP_DIR" ]]; then
+      cp -f "$APPS_DIR/comic-battle.desktop" "$DESKTOP_DIR/Comic-Battle.desktop" && chmod +x "$DESKTOP_DIR/Comic-Battle.desktop"
+      command -v gio >/dev/null 2>&1 && gio set "$DESKTOP_DIR/Comic-Battle.desktop" metadata::trusted true >/dev/null 2>&1 || true
+    fi
+    ;;
+esac
+log "Shortcuts created"
+
+# --- Step 8: done ----------------------------------------------------------
 step "Installation complete"
-printf "\r"
+stop_spinner
+printf '%s' "$CLR"
 echo
 echo "=============================================="
 echo "  Comic-Battle is installed!"
 echo "=============================================="
 echo
-echo "Run the game:"
-echo "  ./comic-battle                 (shortcut — no manual activate needed)"
-echo "  # or:"
-echo "  source .venv/bin/activate      # Linux/macOS"
-echo "  # .venv\Scripts\activate       # Windows"
-echo "  python main.py"
+echo "Start the game:"
+echo "  comic-battle                  (from any terminal)"
+echo "  or open 'Comic-Battle' from your application menu / desktop"
+[[ -n "$SHORTCUT_NOTE" ]] && { echo; echo "  NOTE: $SHORTCUT_NOTE"; echo "  Until then you can run: $BIN_DIR/comic-battle"; }
 echo
 echo "First time?"
-echo "  1. Run ./comic-battle"
-echo "  2. Register a new account when prompted"
-echo "  3. Use 'Enlist' to add characters via the Superhero API"
-echo "  4. Get a free API key at https://www.superheroapi.com/"
+echo "  1. Register a new account when prompted"
+echo "  2. Use 'Character Enlist' to add characters via the Superhero API"
+echo "  3. Get a free API key at https://www.superheroapi.com/"
 echo
-echo "Need help?  ./comic-battle --help   |   bash install.sh --help"
+echo "Your saves live in: $DATA_HOME"
+echo "Upgrade later:  bash \"$REPO_DIR/install.sh\" -u   |   Remove:  bash \"$REPO_DIR/install.sh\" --uninstall"
 echo "=============================================="

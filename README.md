@@ -2,61 +2,52 @@
 
 A terminal-based comic character battle simulator. Register, pick your avatar and teammates from a universe of DC/Marvel/Dark Horse characters, then let weighted powerstats decide the winner against an enemy team.
 
-Built with Python + `pyfiglet`, `questionary`, `bcrypt`, `numpy`, `g4f`, and `alive-progress`.
+Built with Python + `pyfiglet`, `questionary`, `bcrypt`, `g4f`, and `alive-progress`.
 
-## Features
+## Install
 
-- **Auth**: register/login with hashed passwords (`bcrypt`), stored in `data.json`
-- **Character enlistment**: search and add characters via the Superhero API
-- **Battle**: pick avatar + up to 5 teammates vs up to 5 enemies; weighted powerstat scoring declares a winner
-- **Graffiti ASCII title** powered by a bundled `fonts/graffiti.flf` (not included with pyfiglet by default)
-
-## Quick start
-
-### One-liner (Linux / macOS)
+### Linux / macOS (one line)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/moseswanjohi179/Comic-Battle/main/install.sh | bash
 ```
 
-Then activate and run:
+This installs into `~/.local/share/comic-battle`, adds a **`comic-battle`** command to `~/.local/bin` (and your PATH if needed) and creates an application-menu / desktop shortcut. Then just run:
 
 ```bash
-cd Comic-Battle
-source .venv/bin/activate
-python main.py
+comic-battle
 ```
 
-### One-liner (Windows PowerShell)
+### Windows (PowerShell)
 
 ```powershell
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/moseswanjohi179/Comic-Battle/main/install.ps1 -OutFile install.ps1; ./install.ps1
+powershell -ExecutionPolicy Bypass -Command "iwr https://raw.githubusercontent.com/moseswanjohi179/Comic-Battle/main/install.ps1 -OutFile $env:TEMP\cb-install.ps1; & $env:TEMP\cb-install.ps1"
 ```
 
-Then activate and run:
-
-```powershell
-cd Comic-Battle
-.venv\Scripts\activate
-python main.py
-```
+Installs into `%LOCALAPPDATA%\Comic-Battle`, adds `comic-battle` to your PATH and creates Desktop + Start Menu shortcuts.
 
 ### From a cloned repo
 
 ```bash
-# Clone
 git clone https://github.com/moseswanjohi179/Comic-Battle.git
 cd Comic-Battle
-
-# Run the installer (creates venv, installs deps, registers the graffiti font)
-bash install.sh          # Linux/macOS
-# .\install.ps1          # Windows PowerShell
-
-# Activate and play
-source .venv/bin/activate   # (Linux/macOS)
-# .venv\Scripts\activate    # (Windows)
-python main.py
+bash install.sh          # Linux/macOS      (.\install.ps1 on Windows)
+comic-battle
 ```
+
+Requires Python 3.10+ (on Debian/Ubuntu/Parrot: `sudo apt install python3 python3-venv python3-pip`).
+
+### Installer flags (install.sh / install.ps1)
+
+| install.sh | install.ps1 | Meaning |
+|------|------|---------|
+| `-h, --help` | `-Help` | Show help |
+| `-v, --version` | `-Version` | Show installer version |
+| `-q, --quiet` | `-Quiet` | Suppress non-essential output |
+| `-f, --force` | `-Force` | Recreate the virtualenv |
+| `-u, --update` | `-Update` | Re-download the latest files and re-install |
+| `--uninstall` | `-Uninstall` | Remove the app + shortcuts (saves are kept) |
+| `--no-progress` | `-NoProgress` | Disable progress bars / spinners |
 
 ## Manual install
 
@@ -64,67 +55,35 @@ python main.py
 python3 -m venv .venv
 source .venv/bin/activate      # .venv\Scripts\activate on Windows
 pip install -r requirements.txt
-python -c "import pyfiglet; pyfiglet.FigletFont.installFonts('fonts/graffiti.flf')"
 python main.py
-```
-
-## Installer flags (install.sh / install.ps1)
-
-Both installers accept the same flags:
-
-| Flag | Meaning |
-|------|---------|
-| `-h, --help` | Show help message |
-| `-v, --version` | Show installer version |
-| `-q, --quiet` | Suppress non-essential output |
-| `-f, --force` | Recreate the virtualenv even if it exists |
-| `-u, --update` | Re-download latest files from GitHub and re-install (upgrade) |
-| `--no-progress` | Disable progress bars / spinners |
-
-Example upgrade:
-```bash
-bash install.sh -u        # Linux/macOS
-.\install.ps1 -Update     # Windows PowerShell
-```
-
-## Shortcut launcher
-
-The installer creates a `comic-battle` script so you never have to manually activate the venv:
-
-```bash
-./comic-battle        # Linux/macOS + Git Bash
-.\comic-battle.ps1    # Windows PowerShell
 ```
 
 ## Superhero API key
 
-The enlistment feature needs a free key from [superheroapi.com](https://www.superheroapi.com/).
+The enlistment feature needs a free key from [superheroapi.com](https://www.superheroapi.com/). Choose **Character Enlist** in the lobby and the game asks for it once and stores it locally. An invalid key is detected and re-requested automatically.
 
-1. Run the game and choose **Enlist** → follow the first-time setup, or
-2. Create `.env` in the repo root:
-   ```
-   SUPERHERO_API=your_key_here
-   ```
+## Where your data lives
 
-`.env`, `data.json`, `characters.json`, `.hash_cache`, and `.venv/` are all gitignored — your personal data never leaves your machine.
+Accounts, your roster and your API key are stored in `~/.comic-battle` (`%USERPROFILE%\.comic-battle` on Windows), independent of where the game is installed or launched from, so updating never touches them. Set `COMIC_BATTLE_HOME` to use another folder. Nothing in there is ever committed to this repo.
+
+## How a battle works
+
+Each fighter's score is a weighted sum of their powerstats (intelligence 15%, strength 10%, speed 20%, durability 15%, power 10%, combat 30%). A team's score is the **average** of its fighters, so squad size can't decide a fight. Newly enlisted characters are calibrated once by an AI (strength / durability / power relative to the strongest character; the original API numbers are kept as `powerstats_original`).
 
 ## Project structure
 
 ```
 Comic-Battle/
-├── main.py            # Entry point: auth, lobby, play flow
-├── engiene.py         # Lobby menu, battle scoring, banner rendering
-├── character_manager.py   # Character publisher validation + AI power ranking
-├── characters_main.py # Superhero API enlistment (search/add characters)
-├── fonts/graffiti.flf # Bundled figlet font (not in pyfiglet by default)
-├── install.sh         # Linux/macOS installer
-├── install.ps1        # Windows PowerShell installer
-├── comic-battle       # Shortcut launcher (created by installer)
-├── comic-battle.ps1   # Shortcut launcher (created by installer)
-├── requirements.txt   # Pinned Python dependencies
-├── .env               # Your SUPERHERO_API key (gitignored)
-├── .gitignore
-└── LICENSE            # MIT
+├── main.py                # Entry point: accounts, lobby loop
+├── engiene.py             # Lobby menu, battle scoring, shared helpers
+├── character_manager.py   # One-time AI calibration of new characters
+├── characters_main.py     # Superhero API enlistment (search/add characters)
+├── paths.py               # Where user data is stored
+├── fonts/graffiti.flf     # Bundled figlet font
+├── install.sh             # Linux/macOS installer
+├── install.ps1            # Windows installer
+├── requirements.txt
+└── LICENSE                # MIT
 ```
 
 ## License

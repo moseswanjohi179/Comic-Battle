@@ -1,183 +1,174 @@
-import json
-import g4f
-import hashlib
-import os
+import re
 import sys
-import time
+import threading
 
-FILE_NAME = "characters.json" 
-CACHE_FILE = ".hash_cache"
+import g4f
+
+from engiene import load_json, save_json, to_num
+from paths import APEX_FILE, CHARACTERS_FILE
+
 VALID_PUBLISHERS = ["DC Comics", "Marvel Comics", "Dark Horse Comics", "Star Wars", "Shueisha", "Hasbro"]
+PHYSICAL_STATS = ("strength", "durability", "power")
+AI_TIMEOUT = 45  # seconds per AI request
 
-def get_file_hash(filepath: str) -> str:
-    """Generates an MD5 hash of the file to check for structural updates."""
-    if not os.path.exists(filepath):
-        return ""
-    hasher = hashlib.md5()
-    with open(filepath, 'rb') as f:
-        buf = f.read()
-        hasher.update(buf)
-    return hasher.hexdigest()
 
-def draw_progress_bar(current: int, total: int, status_msg: str = ""):
-    """Renders a clean terminal loading bar tracking processing status."""
+def draw_progress_bar(current, total, status_msg=""):
+    total = max(total, 1)
     bar_length = 30
     progress = current / total
     block = int(round(bar_length * progress))
-    text = f"\r[{'#' * block}{'-' * (bar_length - block)}] {int(progress * 100)}% | {status_msg}"
+    text = f"\r[{'#' * block}{'-' * (bar_length - block)}] {int(progress * 100)}% | {status_msg[:50]:<50}"
     sys.stdout.write(text)
     sys.stdout.flush()
 
-def ask_ai_for_ranking(character_pool_names: list) -> str:
-    """Asks the AI to pick the single absolute strongest character from the current pool."""
-    pool_str = ", ".join(character_pool_names)
-    prompt = (
-        f"From this list of characters: [{pool_str}], who is the absolute strongest "
-        f"in terms of raw physical power, cosmic capability, or tier scaling?\n"
-        f"Respond with ONLY the exact name from the list. No punctuation, no explanations."
-    )
-    try:
-        response = g4f.ChatCompletion.create(
-            model=g4f.models.gpt_4o,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.strip()
-    except Exception:
-        return character_pool_names[0]
 
-def ask_ai_for_relative_score(char_name: str, apex_name: str) -> int:
-    """Asks the AI to score a character's physical power relative to the apex character (0-100)."""
-    prompt = (
-        f"If the character '{apex_name}' represents a perfect 100 in physical strength, durability, and power, "
-        f"what score from 1 to 100 would '{char_name}' be by comparison?\n"
+def _ask_ai(prompt):
+    """Ask the AI a question. Returns text, or None on error/timeout (never hangs)."""
+    box = {}
+
+    def worker():
+        try:
+            box["reply"] = g4f.ChatCompletion.create(
+                model="gpt-4o", messages=[{"role": "user", "content": prompt}]
+            )
+        except Exception:
+            box["reply"] = None
+
+    thread = threading.Thread(target=worker, daemon=True)
+    thread.start()
+    thread.join(AI_TIMEOUT)
+    reply = box.get("reply")
+    return str(reply).strip() if reply else None
+
+
+def ask_publisher(name, full_name="", alter_egos=""):
+    identity = name
+    if full_name and full_name != "-" and full_name.lower() != name.lower():
+        identity += f" (Real Name: {full_name})"
+    if alter_egos and "no alter egos found" not in alter_egos.lower() and alter_egos != "-":
+        identity += f" / {alter_egos}"
+
+    reply = _ask_ai(
+        f"Which publisher owns the character: {identity}?\n"
+        f"Choose EXACTLY and ONLY from this list: {', '.join(VALID_PUBLISHERS)}.\n"
+        f"Do not include punctuation, explanations, or markdown formatting."
+    )
+    if not reply:
+        return None
+    for pub in VALID_PUBLISHERS:
+        if reply.strip().strip(".").lower() == pub.lower():
+            return pub
+    return None
+
+
+def _fallback_apex(data):
+    """Strongest character by the API's own physical stats (used if the AI fails)."""
+    def raw_power(info):
+        stats = info.get("powerstats_original") or info.get("powerstats") or {}
+        return sum(to_num(stats.get(s)) for s in PHYSICAL_STATS)
+
+    return max(data.values(), key=raw_power).get("name")
+
+
+def get_apex(data):
+    """The 100-point reference character. Chosen once, then remembered."""
+    names = [info.get("name") for info in data.values() if info.get("name")]
+    saved = load_json(APEX_FILE, {}).get("name")
+    if saved in names:
+        return saved
+
+    apex = None
+    if len(names) > 1:
+        reply = _ask_ai(
+            f"From this list of characters: [{', '.join(names)}], who is the absolute strongest "
+            f"in terms of raw physical power, cosmic capability, or tier scaling?\n"
+            f"Respond with ONLY the exact name from the list. No punctuation, no explanations."
+        )
+        if reply:
+            apex = next((n for n in names if n.lower() == reply.strip().strip(".").lower()), None)
+    if apex is None:
+        apex = _fallback_apex(data)
+    save_json(APEX_FILE, {"name": apex})
+    return apex
+
+
+def ask_relative_score(name, apex):
+    reply = _ask_ai(
+        f"If the character '{apex}' represents a perfect 100 in physical strength, durability, and power, "
+        f"what score from 1 to 100 would '{name}' be by comparison?\n"
         f"Consider their canon comic/anime feats. Respond with ONLY a single integer number between 1 and 100. "
         f"Do not include text, percent signs, or formatting."
     )
-    try:
-        response = g4f.ChatCompletion.create(
-            model=g4f.models.gpt_4o,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        clean_num = "".join(filter(str.isdigit, response.strip()))
-        return max(1, min(100, int(clean_num)))
-    except Exception:
-        return 50
+    match = re.search(r"\d+", reply or "")
+    if not match:
+        return None  # keep the original stats instead of inventing a number
+    return max(1, min(100, int(match.group())))
 
-def characters_manager(character_name: str, full_name: str = "", alter_egos: str = "") -> str:
-    """Uses G4F to classify a character into one of the allowed publishers."""
-    allowed_list = ", ".join(VALID_PUBLISHERS)
-    identity_context = character_name
-    if full_name and full_name != "-" and full_name.lower() != character_name.lower():
-        identity_context += f" (Real Name: {full_name})"
-    if alter_egos and "no alter egos found" not in alter_egos.lower() and alter_egos != "-":
-        identity_context += f" / {alter_egos}"
-
-    prompt = (
-        f"Which publisher owns the character: {identity_context}?\n"
-        f"Choose EXACTLY and ONLY from this list: {allowed_list}.\n"
-        f"Do not include punctuation, explanations, or markdown formatting."
-    )
-    try:
-        response = g4f.ChatCompletion.create(
-            model=g4f.models.gpt_4o,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        cleaned_response = response.strip().title()
-        for pub in VALID_PUBLISHERS:
-            if cleaned_response == pub.title():
-                return pub
-        return "Unknown"
-    except Exception:
-        return "Unknown"
 
 def update_characters():
-    if not os.path.exists(FILE_NAME):
-        print(f"Error: {FILE_NAME} not found.")
+    """Calibrate characters that have not been processed yet (new ones only).
+
+    - fills in a missing/unknown publisher
+    - rescales strength/durability/power relative to the strongest character
+      (the API's original numbers are kept under "powerstats_original")
+    Characters the AI could not rate stay pending and are retried next time.
+    """
+    data = load_json(CHARACTERS_FILE, {})
+    pending = [cid for cid, info in data.items() if isinstance(info, dict) and not info.get("cb_processed")]
+    if not pending:
         return
 
-    # Check if file has actually changed since last time
-    current_hash = get_file_hash(FILE_NAME)
-    if os.path.exists(CACHE_FILE):
-        with open(CACHE_FILE, 'r') as cf:
-            saved_hash = cf.read().strip()
-        if current_hash == saved_hash:
-            print("⚡ No changes detected in characters.json since last run. Skipping execution.")
-            return
-
+    print(f"Calibrating {len(pending)} new character(s) - this needs an internet connection...")
     try:
-        with open(FILE_NAME, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        print(f"Failed to read JSON: {e}")
-        return
+        # Phase 1: names + publishers
+        for idx, cid in enumerate(pending, 1):
+            info = data[cid]
+            bio = info.setdefault("biography", {})
+            name = info.get("name", "Unknown Character")
+            draw_progress_bar(idx, len(pending), f"Verifying identity: {name}")
 
-    total_characters = len(data)
-    if total_characters == 0:
-        print("Dataset is empty.")
-        return
+            full_name = bio.get("full-name") or ""
+            if "Batman" in name and "(" not in name and full_name and full_name != "-":
+                info["name"] = f"Batman ({full_name.split(',')[0]})"
+                name = info["name"]
 
-    print("🚀 Initializing data processing sequence...")
-    
-    # Phase 1: Name fixing & Publisher checking
-    for idx, (char_id, char_info) in enumerate(data.items(), 1):
-        if "biography" not in char_info:
-            continue
-        
-        biography = char_info["biography"]
-        current_publisher = biography.get("publisher", "")
-        name = char_info.get("name", "Unknown Character")
-        full_name = biography.get("full-name", "")
-        alter_egos = biography.get("alter-egos", "")
+            if bio.get("publisher") not in VALID_PUBLISHERS:
+                alter = bio.get("alter-egos") or ""
+                publisher = ask_publisher(name, full_name, alter if isinstance(alter, str) else "")
+                if publisher:
+                    bio["publisher"] = publisher
+        sys.stdout.write("\n")
 
-        # Draw progress for verification phase
-        draw_progress_bar(idx, total_characters, f"Verifying Identity: {name}")
+        # Phase 2: power calibration
+        apex = get_apex(data)
+        for idx, cid in enumerate(pending, 1):
+            info = data[cid]
+            name = info.get("name", "Unknown Character")
+            draw_progress_bar(idx, len(pending), f"Rating power: {name}")
 
-        if "Batman" in name and full_name and full_name != "-":
-            clean_full_name = full_name.split(",")[0]
-            char_info["name"] = f"Batman ({clean_full_name})"
-            name = char_info["name"]
+            stats = info.get("powerstats")
+            if not isinstance(stats, dict) or not stats:
+                info["cb_processed"] = True
+                continue
 
-        if current_publisher not in VALID_PUBLISHERS:
-            new_publisher = characters_manager(name, full_name, alter_egos) 
-            if new_publisher in VALID_PUBLISHERS:
-                biography["publisher"] = new_publisher
-                
-    sys.stdout.write("\n") # Break the line after tracking verification stage
+            score = 100 if name == apex else ask_relative_score(name, apex)
+            if score is None:
+                continue
 
-    # Phase 2: Power Ranking Optimization
-    character_names = [char_info.get("name") for char_info in data.values()]
-    print("🤖 Consulting AI for Tier Ceiling...")
-    apex_character = ask_ai_for_ranking(character_names)
+            info.setdefault("powerstats_original", dict(stats))
+            for stat in PHYSICAL_STATS:
+                stats[stat] = str(score)
+            info["cb_processed"] = True
+        sys.stdout.write("\n")
+    finally:
+        save_json(CHARACTERS_FILE, data)  # keep progress even on Ctrl-C
 
-    # Phase 3: Recalculate stats with Loading Bar Output
-    for idx, (char_id, char_info) in enumerate(data.items(), 1):
-        name = char_info.get("name")
-        if "powerstats" not in char_info:
-            continue
+    left = sum(1 for cid in pending if not data[cid].get("cb_processed"))
+    if left:
+        print(f"{left} character(s) could not be rated right now and will be retried later.")
+    else:
+        print("Calibration complete.")
 
-        # Display the custom message requested while executing AI tasks
-        draw_progress_bar(idx, total_characters, f"Recalculating Character Power Stats ({name})")
 
-        if name == apex_character:
-            new_score = 100
-        else:
-            new_score = ask_ai_for_relative_score(name, apex_character)
-
-        for stat in ["strength", "durability", "power"]:
-            char_info["powerstats"][stat] = str(new_score)
-
-    sys.stdout.write("\n\n✨ Recalculation Complete! Saving updates...")
-    
-    # Save modified data back to file
-    with open(FILE_NAME, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
-
-    # Update cache hash so it skips next time unless edited
-    new_hash = get_file_hash(FILE_NAME)
-    with open(CACHE_FILE, 'w') as cf:
-        cf.write(new_hash)
-        
-    print("\n💾 Dataset written to disk successfully.")
-    os.system('cls' if os.name == 'nt' else 'clear')
 if __name__ == "__main__":
     update_characters()

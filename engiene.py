@@ -1,12 +1,25 @@
 import json
 import os
-import time
-import g4f
+
 import pyfiglet
 import questionary
-import numpy as np
+
+from paths import CHARACTERS_FILE, DATA_FILE
+
+# Weights for each Superhero-API powerstat (they sum to 1.0).
+STAT_WEIGHTS = {
+    "intelligence": 0.15,
+    "strength": 0.10,
+    "speed": 0.20,
+    "durability": 0.15,
+    "power": 0.10,
+    "combat": 0.30,
+}
 
 
+# --------------------------------------------------------------------------
+# Small helpers shared by every module
+# --------------------------------------------------------------------------
 def banner(text="Battle_Game"):
     """Render ASCII title using the graffiti font, with fallbacks."""
     for font in ("graffiti", "standard"):
@@ -16,186 +29,191 @@ def banner(text="Battle_Game"):
             continue
     return text
 
-def character_del(identity):
+
+def clear():
+    os.system("cls" if os.name == "nt" else "clear")
+
+
+def to_num(value, default=0.0):
+    """Convert API values such as "85", 85, "null", None or "" to a float."""
     try:
-        with open("data.json", "r") as file:
-            data = json.load(file)
+        return float(value)
+    except (TypeError, ValueError):
+        return default
 
-        # Filter out keys belonging to the user
-        data = {
-            key: val
-            for key, val in data.items()
-            if val.get("user_name") != identity
-        }
 
-        with open("data.json", "w") as file:
-            json.dump(data, file, indent=4)
-    except FileNotFoundError:
-        print("data.json not found.")
+def load_json(path, default=None):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {} if default is None else default
+
+
+def save_json(path, data):
+    """Write atomically so a crash can never leave a half-written save file."""
+    tmp = f"{path}.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+    os.replace(tmp, path)
+
+
+def pause(message="Press any key to continue..."):
+    try:
+        questionary.press_any_key_to_continue(message).ask()
+    except Exception:
+        try:
+            input(f"\n{message} (Enter) ")
+        except EOFError:
+            pass
+
+
+# --------------------------------------------------------------------------
+# Accounts
+# --------------------------------------------------------------------------
+def character_del(identity):
+    """Delete the account called `identity` from data.json."""
+    data = load_json(DATA_FILE, {})
+    data = {k: v for k, v in data.items() if v.get("user_name") != identity}
+    save_json(DATA_FILE, data)
 
 
 def lobby(name):
-    os.system("cls" if os.name == "nt" else "clear")
+    clear()
     print(banner())
-
     selection = questionary.select(
-        "\n---Options---\n",
-        choices=["Play", "Reset", "Character Enlist", "Exit"],
+        f"\n---Options---  (logged in as {name})\n",
+        choices=["Play", "Character Enlist", "Reset Account", "Log out", "Exit"],
     ).ask()
 
-    if selection == "Play":
-        return "play"
-    elif selection == "Reset":
-        return "Reset"
-    elif selection == "Character Enlist":
-        return "Enlist"
-    else:
-        return "log out"
+    return {
+        "Play": "play",
+        "Character Enlist": "enlist",
+        "Reset Account": "reset",
+        "Log out": "logout",
+    }.get(selection, "exit")
+
+
+# --------------------------------------------------------------------------
+# Battle
+# --------------------------------------------------------------------------
+def fighter_score(info):
+    stats = info.get("powerstats") or {}
+    return sum(weight * to_num(stats.get(stat)) for stat, weight in STAT_WEIGHTS.items())
+
+
+def team_score(ids, characters):
+    """Average weighted score per fighter, so squad size can't decide a fight."""
+    scores = [fighter_score(characters[c]) for c in ids if c in characters]
+    return sum(scores) / len(scores) if scores else 0.0
+
+
+def _universe_of(info):
+    return (info.get("biography") or {}).get("publisher") or "Other"
+
+
+def _choices(characters, ids):
+    """Build menu choices keyed by character ID (names are not unique)."""
+    counts = {}
+    for cid in ids:
+        name = characters[cid].get("name", "Unknown")
+        counts[name] = counts.get(name, 0) + 1
+    choices = []
+    for cid in ids:
+        name = characters[cid].get("name", "Unknown")
+        title = f"{name} (ID {cid})" if counts[name] > 1 else name
+        choices.append(questionary.Choice(title=title, value=cid))
+    return sorted(choices, key=lambda c: c.title.lower())
+
+
+def _pick_team(message, choices, minimum=1, maximum=5):
+    while True:
+        picked = questionary.checkbox(message, choices=choices).ask()
+        if picked is None:
+            return None
+        if minimum <= len(picked) <= maximum:
+            return picked
+        print(f"\n[!] Please select between {minimum} and {maximum}.\n")
 
 
 def play():
-    os.system("cls" if os.name == "nt" else "clear")
+    """Run one battle. Returns "enlist" if the player should add characters first."""
+    clear()
     print(banner())
 
-    try:
-        with open("characters.json", "r") as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        print("!! characters.json file not found !!")
-        return
+    raw = load_json(CHARACTERS_FILE, {})
+    characters = {
+        cid: info
+        for cid, info in raw.items()
+        if isinstance(info, dict) and info.get("name")
+    }
 
-    # Extract available publishers/universes
-    character_register = list(
-        {
-            char_info.get("biography", {}).get("publisher")
-            for char_info in data.values()
-            if char_info.get("biography", {}).get("publisher")
-        }
-    )
+    if not characters:
+        print("\n!! The Character Register is Empty !!\n")
+        if questionary.confirm("Enlist characters now?").ask():
+            return "enlist"
+        return None
 
-    if not character_register:
-        print("!! The Character Register is Empty !!")
-        if questionary.confirm("Would You Like To Quit?").ask():
-            return
-        return "character_enlist"
+    universes = sorted({_universe_of(info) for info in characters.values()})
 
-    # --- 1. Player Universe & Avatar Selection ---
-    universe = questionary.select(
-        "\nSelect Your Universe:\n", choices=character_register
-    ).ask()
+    # 1. Player universe + avatar
+    universe = questionary.select("\nSelect Your Universe:\n", choices=universes).ask()
+    if universe is None:
+        return None
+    pool = [cid for cid, info in characters.items() if _universe_of(info) == universe]
 
-    player_universe_list = [
-        char_info["name"]
-        for char_info in data.values()
-        if char_info.get("biography", {}).get("publisher") == universe
-    ]
-
-    avatar = questionary.select(
-        "Select Your Avatar", choices=player_universe_list
-    ).ask()
+    avatar = questionary.select("Select Your Avatar", choices=_choices(characters, pool)).ask()
     if avatar is None:
-        return
-    player_universe_list.remove(avatar)
+        return None
 
-    # --- 2. Teammate Selection ---
-    if not player_universe_list:
+    # 2. Teammates
+    mates_pool = [cid for cid in pool if cid != avatar]
+    team = []
+    if not mates_pool:
         print("\nNo other characters available in this universe for teammates.")
         if questionary.confirm("Enlist characters?").ask():
-            return "character_enlist"
-        team = []
+            return "enlist"
     else:
-        while True:
-            team = questionary.checkbox(
-                "Pick A Maximum of Five Team Mates:",
-                choices=player_universe_list,
-            ).ask()
+        team = _pick_team("Pick 1 to 5 Team Mates:", _choices(characters, mates_pool))
+        if team is None:
+            return None
 
-            if team is None:  # User cancelled prompt
-                return
-
-            if 1 <= len(team) <= 5:
-                break
-            print("\n[!] Please select between 1 and 5 teammates.\n")
-
-    # --- 3. Enemy Universe Selection ---
+    # 3. Enemy universe + enemy team (never the same fighter on both sides)
     enemy_universe = questionary.select(
-        "\nSelect The Enemy's Universe:\n", choices=character_register
+        "\nSelect The Enemy's Universe:\n", choices=universes
     ).ask()
+    if enemy_universe is None:
+        return None
 
-    if enemy_universe == universe:
-        # Exclude selected avatar & teammates from available enemies
-        excluded = set([avatar] + team)
-        available_enemies = [
-            char_info["name"]
-            for char_info in data.values()
-            if char_info.get("biography", {}).get("publisher") == enemy_universe
-            and char_info["name"] not in excluded
-        ]
-    else:
-        available_enemies = [
-            char_info["name"]
-            for char_info in data.values()
-            if char_info.get("biography", {}).get("publisher") == enemy_universe
-        ]
-
-    # --- 4. Enemy Team Selection ---
-    if not available_enemies:
+    taken = {avatar, *team}
+    enemy_pool = [
+        cid
+        for cid, info in characters.items()
+        if _universe_of(info) == enemy_universe and cid not in taken
+    ]
+    if not enemy_pool:
         print("\nThere are no available enemy characters in this universe.")
         if questionary.confirm("Enlist characters?").ask():
-            return "character_enlist"
-        return
+            return "enlist"
+        return None
 
-    while True:
-        enemy_team = questionary.checkbox(
-            "Pick 1 to 5 Enemies:", choices=available_enemies
-        ).ask()
+    enemy_team = _pick_team("Pick 1 to 5 Enemies:", _choices(characters, enemy_pool))
+    if enemy_team is None:
+        return None
 
-        if enemy_team is None:  # User cancelled prompt
-            return
+    # 4. Fight
+    hero_ids = [avatar] + team
+    hero_score = team_score(hero_ids, characters)
+    enemy_score = team_score(enemy_team, characters)
 
-        if 1 <= len(enemy_team) <= 5:
-            break
-        print("\n[!] Please select between 1 and 5 enemies.\n")
+    def names(ids):
+        return ", ".join(characters[c]["name"] for c in ids)
 
-
-    # -- 5. Fight Calculation ---
-
-
-
-    Weights = np.array([0.15, 0.10, 0.20, 0.15, 0.10, 0.30])
-
-    # Hero Team Calculation
-    total_output = np.zeros(6)
-    team.append(avatar)
-    for each_name in team:
-        for character in data.values():
-            if character.get("name") == each_name:
-                stats = character.get("powerstats", {})
-                stat_vals = [
-                    float(v) if v != "null" else 0.0 for v in stats.values()
-                ]
-                total_output += Weights * np.array(stat_vals)
-
-    hero_score = np.sum(total_output)
-
-    # Enemy Team Calculation
-    total_enemy_output = np.zeros(6)
-    for each_name in enemy_team:
-        for character in data.values():
-            if character.get("name") == each_name:
-                stats = character.get("powerstats", {})
-                stat_vals = [
-                    float(v) if v != "null" else 0.0 for v in stats.values()
-                ]
-                total_enemy_output += Weights * np.array(stat_vals)
-
-    enemy_score = np.sum(total_enemy_output)
-
-    # Output Scores
+    print(f"\nHero Team  : {names(hero_ids)}")
+    print(f"Enemy Team : {names(enemy_team)}\n")
     print(f"Hero Score: {hero_score:.2f}")
     print(f"Enemy Score: {enemy_score:.2f}")
 
-    # Comparison
     if hero_score > enemy_score:
         print("Result: Winner - Hero Team")
     elif enemy_score > hero_score:
@@ -203,22 +221,10 @@ def play():
     else:
         print("Result: Tie")
 
-    def exiting():
-        while True:
-            move_on = questionary.confirm("\nExit?").ask()
-            if move_on != False:
-                return
-            time.sleep(10)
-    exiting()
-
-
+    print()
+    pause("Press any key to return to the lobby...")
+    return None
 
 
 if __name__ == "__main__":
     play()
-
-
-
-
-
-

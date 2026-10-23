@@ -1,14 +1,14 @@
-import os
-import json
-import sys
 import argparse
-import pyfiglet
-import questionary
+import sys
 import time
-import getpass
-from engiene import lobby, banner
-from alive_progress import alive_bar
+
 import bcrypt
+import questionary
+
+from engiene import banner, character_del, clear, load_json, lobby, play, save_json
+from paths import DATA_FILE
+
+VERSION = "1.1.0"
 
 
 def show_help():
@@ -16,31 +16,188 @@ def show_help():
 Comic-Battle — Terminal comic character battle simulator
 
 Usage:
-  python main.py           Start the game (interactive)
-  python main.py --help    Show this help message
-  python main.py --version Show version
+  comic-battle              Start the game (interactive)
+  comic-battle --help       Show this help message
+  comic-battle --version    Show version
 
 Game flow:
   1. Register or log in with a username + password (hashed with bcrypt)
-  2. From the lobby: Play, Reset, Character Enlist, or Exit
+  2. From the lobby: Play, Character Enlist, Reset Account, Log out or Exit
   3. Play: pick your avatar + up to 5 teammates vs up to 5 enemies
   4. Enlist: search the Superhero API and add characters to your roster
 
 First time?
   - You'll need a free API key from https://www.superheroapi.com/ to enlist
-  - The key is stored in .env (gitignored — never uploaded)
-  - Your account data is saved in data.json (gitignored — never uploaded)
-
-Shortcut:
-  ./comic-battle   # Runs the game without manually activating the venv
+  - Your key, accounts and roster are stored in ~/.comic-battle
+    (set COMIC_BATTLE_HOME to use another folder)
 """)
 
 
-def show_version():
-    print("Comic-Battle v1.0.0")
+# --------------------------------------------------------------------------
+# Accounts
+# --------------------------------------------------------------------------
+def load_users():
+    data = load_json(DATA_FILE, {})
+    return data if isinstance(data, dict) else {}
 
 
-if __name__ == "__main__":
+def _check_password(plain, stored_hash):
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), stored_hash.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
+
+
+def register():
+    """Create an account. Returns the new user name, or None if cancelled."""
+    clear()
+    print(banner())
+    users = load_users()
+    taken = {u.get("user_name", "").lower() for u in users.values()}
+
+    while True:
+        name = questionary.text("\nWhat is Your Name ?").ask()
+        if name is None:
+            return None
+        name = name.strip()
+        if not name:
+            print("Name cannot be empty.")
+        elif name.lower() in taken:
+            print("That name is already taken, pick another one.")
+        else:
+            break
+
+    while True:
+        password = questionary.password("\nSecure your account with a password: ").ask()
+        if password is None:
+            return None
+        if len(password) < 4:
+            print("Password must be at least 4 characters.")
+            continue
+        if len(password.encode("utf-8")) > 72:  # bcrypt hard limit
+            print("Password is too long (72 bytes max).")
+            continue
+        again = questionary.password("Confirm password: ").ask()
+        if again is None:
+            return None
+        if again != password:
+            print("Passwords do not match, try again.")
+            continue
+        break
+
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    n = 0
+    while f"profile_{n}" in users:
+        n += 1
+    users[f"profile_{n}"] = {"user_name": name, "password": hashed}
+    save_json(DATA_FILE, users)
+    return name
+
+
+def login(users):
+    """Returns the user name on success, otherwise None."""
+    names = [u["user_name"] for u in users.values() if u.get("user_name")]
+    if not names:
+        print("No usable accounts found.")
+        time.sleep(1.5)
+        return None
+
+    identity = questionary.select("\nPick Your Profile: ", choices=names).ask()
+    if identity is None:
+        return None
+    record = next(u for u in users.values() if u.get("user_name") == identity)
+
+    for _ in range(3):
+        password = questionary.password("Enter Your Password: ").ask()
+        if password is None:
+            return None
+        if _check_password(password, record.get("password", "")):
+            return identity
+        print("\n!!! Wrong Password !!!\n")
+    time.sleep(1.5)
+    return None
+
+
+def authenticate():
+    """Log in or register. Returns a user name, or None to quit."""
+    while True:
+        clear()
+        print(banner())
+        users = load_users()
+
+        if not users:
+            print("No accounts found - let's create one.\n")
+            return register()
+
+        choice = questionary.select(
+            "\nWelcome!", choices=["Log in", "Register a new account", "Exit"]
+        ).ask()
+        if choice in (None, "Exit"):
+            return None
+
+        user = login(users) if choice == "Log in" else register()
+        if user:
+            return user
+
+
+# --------------------------------------------------------------------------
+# Main loop
+# --------------------------------------------------------------------------
+def enlist():
+    from characters_main import mode  # lazy: pulls in g4f, which is slow to import
+
+    mode()
+
+
+def session(user):
+    """Lobby loop for a logged-in user. Returns "logout", "reset" or "exit"."""
+    while True:
+        action = lobby(user)
+
+        if action == "play":
+            if play() == "enlist":
+                enlist()
+        elif action == "enlist":
+            enlist()
+        elif action == "reset":
+            confirmed = questionary.confirm(
+                "This permanently deletes your account. Continue?", default=False
+            ).ask()
+            if confirmed:
+                character_del(user)
+                print("\nAccount deleted.")
+                time.sleep(1.5)
+                return "reset"
+        elif action == "logout":
+            return "logout"
+        else:
+            return "exit"
+
+
+def splash():
+    if not sys.stdout.isatty():
+        return
+    from alive_progress import alive_bar
+
+    with alive_bar(100, title="Loading Game: ") as bar:
+        for _ in range(100):
+            time.sleep(0.015)
+            bar()
+
+
+def run():
+    splash()
+    while True:
+        user = authenticate()
+        if user is None:
+            break
+        if session(user) == "exit":
+            break
+    clear()
+    print("Goodbye!")
+
+
+def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("-h", "--help", action="store_true")
     parser.add_argument("-v", "--version", action="store_true")
@@ -48,123 +205,16 @@ if __name__ == "__main__":
 
     if args.help:
         show_help()
-        sys.exit(0)
+        return
     if args.version:
-        show_version()
-        sys.exit(0)
+        print(f"Comic-Battle v{VERSION}")
+        return
 
-print("""
-
-""")
-with alive_bar(100, title="Loading Game: ") as bar:
-    for i in range(100):
-        time.sleep(0.03)
-        bar()
-
-
-def storage_function():
     try:
-        with open("data.json","r") as file:
-            data = json.load(file)
-
-    except(json.JSONDecodeError, FileNotFoundError):
-        data = {}
-
-    n = 0
-
-    while f"profile_{n}" in data.keys():
-        n = n + 1
-    else:
-        x = f"profile_{n}"
-        data[x] = {"user_name":user_name,"password":hashed}
-        with open("data.json","w") as file:
-            json.dump(data, file, indent=4)
+        run()
+    except KeyboardInterrupt:
+        print("\nBye!")
 
 
-def regstration():
-    os.system('cls' if os.name == 'nt' else 'clear'); print(banner())
-    global user_name
-    global hashed
-
-    user_name = questionary.text("\nWhat is Your Name ?").ask()
-    security = questionary.password("\nSecure your account with a password: ").ask()
-    bytes_pw = security.encode('utf-8')
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(bytes_pw, salt).decode('utf-8')
-    storage_function()
-
-
-def introduction():
-    os.system('cls' if os.name == 'nt' else 'clear'); print(banner())
-    from engiene import character_del, play
-    answer = questionary.confirm("Are you new here?").ask()
-    if answer == True:
-        regstration()
-        action = lobby(user_name)
-        if action == "Reset":
-            character_del(user_name)
-            regstration()
-        elif action == "log out":
-            introduction()
-        elif action == "Enlist":
-            from characters_main import mode
-            mode()
-        elif action == "play":
-            play()
-            lobby(user_name)
-    else:
-        try:
-            with open("data.json","r") as file:
-                    data = json.load(file)
-
-            profiles = []
-            for info in data.values():
-                profiles.append(info["user_name"])
-
-            identity = questionary.select("\nPick Your Profile: ", choices = profiles).ask()
-            pass_confirm = getpass.getpass("Enter Your Password: ")
-            bytes_entered = pass_confirm.encode('utf-8')
-
-            for x in data.values():
-                if x["user_name"] == identity:
-                    possibility = x["password"]
-
-            if bcrypt.checkpw(bytes_entered, possibility.encode('utf-8')):
-                def lobby_handle():
-                    action = lobby(identity)
-                    if action == "Reset":
-                        character_del(identity)
-                        regstration()
-
-                    elif action == "exit":
-                        introduction()
-
-                    elif action == "Enlist":
-                        from characters_main import mode
-                        mode()
-
-                    elif action == "play":
-                        enlist = play()
-                        if enlist == "character_enlist":
-                            from characters_main import mode
-                            mode()
-                            try:
-                                lobby_handle()
-                            except:
-                                print("!!Error..Please Restart!!")
-                                exit()
-
-                        else:
-                            try:
-                                lobby_handle()
-                            except:
-                                print("!!Error..Please Restart!!")
-                                exit()
-                lobby_handle()
-            else:
-                print("\n!!!Wrong Password!!!!!\n")
-                time.sleep(2)
-                introduction()
-        except(json.JSONDecodeError, FileNotFoundError):
-            print("No user data found please Register.")
-            regstration()
+if __name__ == "__main__":
+    main()

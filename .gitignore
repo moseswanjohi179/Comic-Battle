@@ -2,6 +2,7 @@
 .env
 data.json
 characters.json
+apex.json
 .hash_cache
 
 # Bytecode / cache
@@ -13,8 +14,9 @@ __pycache__/
 venv/
 
 # Generated launchers (created by installer)
-comic-battle
-comic-battle.ps1
+/comic-battle
+/comic-battle.cmd
+/comic-battle.ps1
 
 # OS
 .DS_Store
